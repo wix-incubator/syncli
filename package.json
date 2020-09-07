@@ -1,0 +1,50 @@
+{
+  "name": "syncly",
+  "version": "0.0.1",
+  "description": "A Tool for syncing multiple directories",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "npm run compile && node ./bin/syncly",
+    "test": "jest",
+    "unit-test": "jest --watchAll --testPathIgnorePatterns='./templates/*'",
+    "build": ":",
+    "compile": "tsc",
+    "release": "mltci release",
+    "customPublish": "mltci release"
+  },
+  "files": [
+    "bin/",
+    "dist/"
+  ],
+  "bin": {
+    "idoamram/syncly": "bin/syncly",
+    "syncly": "bin/syncly"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.9.6",
+    "@babel/plugin-syntax-import-meta": "^7.8.3",
+    "@babel/plugin-transform-modules-commonjs": "^7.9.6",
+    "@babel/preset-env": "^7.9.6",
+    "@babel/preset-typescript": "^7.9.0",
+    "@types/execa": "^2.0.0",
+    "@types/jest": "^25.2.1",
+    "@types/esm": "^3.2.0",
+    "@types/listr": "^0.14.2",
+    "babel-jest": "^25.5.1",
+    "jest": "^25.5.1",
+    "typescript": "^3.8.3"
+  },
+  "dependencies": {
+    "chalk": "^4.0.0",
+    "commander": "^4.1.0",
+    "esm": "^3.2.25"
+  },
+  "jest": {
+    "testRegex": "src/.*\\.(test).ts$",
+    "testPathIgnorePatterns": [
+      "./templates/*"
+    ]
+  },
+  "author": "Ido Amram",
+  "license": "ISC"
+}
