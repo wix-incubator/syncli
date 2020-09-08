@@ -42,8 +42,9 @@ var __spreadArrays = (this && this.__spreadArrays) || function () {
     return r;
 };
 import * as path from 'path';
+var DEFAULT_IGNORE_SOURCES = ['node_modules'];
 function getConfiguration(programOptions) {
-    console.warn('RAW_CONFIGS', programOptions);
+    var _a, _b, _c;
     var configs;
     if (programOptions.configuration) {
         configs = require(programOptions.configuration);
@@ -53,59 +54,57 @@ function getConfiguration(programOptions) {
         if (programOptions.fileTypes) {
             fileTypes = programOptions.fileTypes.split('/');
         }
+        var sources = (_a = programOptions.sources) === null || _a === void 0 ? void 0 : _a.split('/');
+        var ignoreSources = (_b = programOptions.ignoreSources) === null || _b === void 0 ? void 0 : _b.split('/');
         configs = {
             targets: [{
                     path: programOptions.target,
-                    fileTypes: fileTypes
+                    fileTypes: fileTypes,
+                    sources: sources,
+                    ignoreSources: ignoreSources
                 }]
         };
     }
+    (_c = configs === null || configs === void 0 ? void 0 : configs.targets) === null || _c === void 0 ? void 0 : _c.forEach(function (target) {
+        if (!target.ignoreSources) {
+            target.ignoreSources = DEFAULT_IGNORE_SOURCES;
+        }
+    });
     return configs;
 }
 export function runCli(args) {
-    var _a, _b;
+    var _a, _b, _c;
     return __awaiter(this, void 0, void 0, function () {
-        var Command, program, configs, _loop_1, _i, _c, target;
-        return __generator(this, function (_d) {
-            console.warn('ARGS', args);
+        var Command, program, configs, _loop_1, _i, _d, target;
+        return __generator(this, function (_e) {
             Command = require('commander').Command;
             program = new Command();
             program
                 .option('-c, --configuration <configuration>', 'json/js configuration file')
                 .option('-t, --target <target>', 'target')
                 .option('-f, --file-types <fileTypes>', 'file types')
+                .option('-s, --sources <sources>', 'sources')
+                .option('-i, --ignore-sources <ignoreSources>', 'sources to ignore')
                 .parse(args);
             configs = getConfiguration(program.opts());
-            console.log('CONFIGS', configs);
             if (configs === null || configs === void 0 ? void 0 : configs.targets) {
                 _loop_1 = function (target) {
                     console.warn('TARGET', target);
                     var fileTypes = [];
                     (target.fileTypes || ['js', 'jsx', 'ts', 'tsx', 'json'])
                         .forEach(function (fileType) { return fileTypes.push("'**/*." + fileType + "'"); });
-                    var sources = void 0;
-                    if (target.sources) {
-                        sources = target.sources.join('/');
-                    }
-                    console.warn('Running', __spreadArrays(['watchman-make', '-p'], fileTypes, ['--run', '"node', path.resolve(__dirname, './../sync.ts'), (_a = (sources && "--sources " + sources)) !== null && _a !== void 0 ? _a : '', '--target', target.path, '"']).join(' '));
+                    console.warn('Running', __spreadArrays(['watchman-make', '-p'], fileTypes, ['--run', '"node', path.resolve(__dirname, '../'), (_a = (target.sources && "--sources " + target.sources)) !== null && _a !== void 0 ? _a : '', '--target', target.path, '"']).join(' '));
                     console.warn('Running in', process.cwd());
                     try {
-                        var spawn = require('child_process').spawn;
-                        var watchman = spawn('watchman-make', __spreadArrays(['-p'], fileTypes, ['--run', "\"node " + path.resolve(__dirname, './../sync.ts') + " " + ((_b = (sources && "--sources " + sources)) !== null && _b !== void 0 ? _b : '') + " --target " + target.path + "\""]), { stdio: "inherit", shell: true });
-                        watchman.on('close', function () {
-                            console.warn('WATCHMAN CLOSE');
-                        });
-                        watchman.on('exit', function () {
-                            console.warn('WATCHMAN EXIT');
-                        });
-                        console.warn('STARTED');
+                        var spawn_1 = require('child_process').spawn;
+                        spawn_1('watchman-make', __spreadArrays(['-p'], fileTypes, ['--run', "\"node " + path.resolve(__dirname, './sync.js') + " " + ((_b = (target.sources && "--sources " + target.sources)) !== null && _b !== void 0 ? _b : '') + " " + ((_c = (target.ignoreSources && "--ignore-sources " + target.ignoreSources)) !== null && _c !== void 0 ? _c : '') + " --target " + target.path + "\""]), { stdio: "inherit", shell: true });
                     }
                     catch (e) {
                         console.warn('ERROR', e);
                     }
                 };
-                for (_i = 0, _c = configs.targets; _i < _c.length; _i++) {
-                    target = _c[_i];
+                for (_i = 0, _d = configs.targets; _i < _d.length; _i++) {
+                    target = _d[_i];
                     _loop_1(target);
                 }
             }

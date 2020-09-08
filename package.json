@@ -6,8 +6,8 @@
   "scripts": {
     "start": "npm run compile && node ./bin/syncly",
     "test": "jest",
-    "unit-test": "jest --watchAll --testPathIgnorePatterns='./templates/*'",
-    "build": ":",
+    "unit-test": "jest --watchAll",
+    "build": "npm run compile",
     "compile": "tsc",
     "release": "mltci release",
     "customPublish": "mltci release"
