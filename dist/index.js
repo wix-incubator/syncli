@@ -1,3 +1,23 @@
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -41,42 +61,54 @@ var __spreadArrays = (this && this.__spreadArrays) || function () {
             r[k] = a[j];
     return r;
 };
-import * as path from 'path';
-var DEFAULT_IGNORE_SOURCES = ['node_modules'];
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.runCli = void 0;
+var path = __importStar(require("path"));
+var chalk_1 = __importDefault(require("chalk"));
+var constants_1 = require("./constants");
 function getConfiguration(programOptions) {
-    var _a, _b, _c;
+    var _a, _b;
     var configs;
-    if (programOptions.configuration) {
-        configs = require(programOptions.configuration);
-    }
-    else if (programOptions.target) {
+    if (programOptions.target) {
         var fileTypes = void 0;
         if (programOptions.fileTypes) {
             fileTypes = programOptions.fileTypes.split('/');
         }
         var sources = (_a = programOptions.sources) === null || _a === void 0 ? void 0 : _a.split('/');
-        var ignoreSources = (_b = programOptions.ignoreSources) === null || _b === void 0 ? void 0 : _b.split('/');
+        var ignoredSources = (_b = programOptions.ignoredSources) === null || _b === void 0 ? void 0 : _b.split('/');
         configs = {
-            targets: [{
-                    path: programOptions.target,
-                    fileTypes: fileTypes,
-                    sources: sources,
-                    ignoreSources: ignoreSources
-                }]
+            target: {
+                path: programOptions.target,
+                fileTypes: fileTypes,
+                sources: sources,
+                ignoredSources: ignoredSources
+            }
         };
     }
-    (_c = configs === null || configs === void 0 ? void 0 : configs.targets) === null || _c === void 0 ? void 0 : _c.forEach(function (target) {
-        if (!target.ignoreSources) {
-            target.ignoreSources = DEFAULT_IGNORE_SOURCES;
-        }
-    });
     return configs;
 }
-export function runCli(args) {
-    var _a, _b, _c;
+function printConfigurations(target) {
+    console.log(chalk_1.default.blueBright(chalk_1.default.bold('Target path:'), target.path));
+    console.log(chalk_1.default.blueBright(chalk_1.default.bold('Sources:'), target.sources || 'Default (All)'));
+    console.log(chalk_1.default.blueBright(chalk_1.default.bold('Ignored sources:'), target.ignoredSources || 'Default (node_modules, hidden files/folders)'));
+    console.log(chalk_1.default.blueBright(chalk_1.default.bold('File types:'), target.fileTypes || "Default (" + constants_1.DEFAULT_FILE_TYPES + ")"));
+}
+function getSyncScriptCommand(target) {
+    var _a, _b;
+    var scriptPath = path.resolve(__dirname, './sync.js');
+    var sources = (_a = (target.sources && "--sources " + target.sources)) !== null && _a !== void 0 ? _a : '';
+    var ignoredSources = (_b = (target.ignoredSources && "--ignored-sources " + target.ignoredSources)) !== null && _b !== void 0 ? _b : '';
+    return "\"node " + scriptPath + " " + sources + " " + ignoredSources + " --target " + target.path + "\"";
+}
+function runCli(args) {
+    var _a;
     return __awaiter(this, void 0, void 0, function () {
-        var Command, program, configs, _loop_1, _i, _d, target;
-        return __generator(this, function (_e) {
+        var spawn, Command, program, target, fileTypes_1, watchmanCommand, watchmanArgs;
+        return __generator(this, function (_b) {
+            spawn = require('child_process').spawn;
             Command = require('commander').Command;
             program = new Command();
             program
@@ -84,31 +116,31 @@ export function runCli(args) {
                 .option('-t, --target <target>', 'target')
                 .option('-f, --file-types <fileTypes>', 'file types')
                 .option('-s, --sources <sources>', 'sources')
-                .option('-i, --ignore-sources <ignoreSources>', 'sources to ignore')
+                .option('-i, --ignored-sources <ignoredSources>', 'sources to ignore')
                 .parse(args);
-            configs = getConfiguration(program.opts());
-            if (configs === null || configs === void 0 ? void 0 : configs.targets) {
-                _loop_1 = function (target) {
-                    console.warn('TARGET', target);
-                    var fileTypes = [];
-                    (target.fileTypes || ['js', 'jsx', 'ts', 'tsx', 'json'])
-                        .forEach(function (fileType) { return fileTypes.push("'**/*." + fileType + "'"); });
-                    console.warn('Running', __spreadArrays(['watchman-make', '-p'], fileTypes, ['--run', '"node', path.resolve(__dirname, '../'), (_a = (target.sources && "--sources " + target.sources)) !== null && _a !== void 0 ? _a : '', '--target', target.path, '"']).join(' '));
-                    console.warn('Running in', process.cwd());
-                    try {
-                        var spawn_1 = require('child_process').spawn;
-                        spawn_1('watchman-make', __spreadArrays(['-p'], fileTypes, ['--run', "\"node " + path.resolve(__dirname, './sync.js') + " " + ((_b = (target.sources && "--sources " + target.sources)) !== null && _b !== void 0 ? _b : '') + " " + ((_c = (target.ignoreSources && "--ignore-sources " + target.ignoreSources)) !== null && _c !== void 0 ? _c : '') + " --target " + target.path + "\""]), { stdio: "inherit", shell: true });
-                    }
-                    catch (e) {
-                        console.warn('ERROR', e);
-                    }
-                };
-                for (_i = 0, _d = configs.targets; _i < _d.length; _i++) {
-                    target = _d[_i];
-                    _loop_1(target);
+            target = (_a = getConfiguration(program.opts())) === null || _a === void 0 ? void 0 : _a.target;
+            if (target) {
+                printConfigurations(target);
+                fileTypes_1 = [];
+                (target.fileTypes || constants_1.DEFAULT_FILE_TYPES)
+                    .forEach(function (fileType) { return fileTypes_1.push("'**/*." + fileType + "'"); });
+                try {
+                    watchmanCommand = 'watchman-make';
+                    watchmanArgs = __spreadArrays(['-p'], fileTypes_1, ['--run',
+                        getSyncScriptCommand(target)]);
+                    console.log(chalk_1.default.green.bold('Running'), watchmanCommand, watchmanArgs.join(' '));
+                    spawn(watchmanCommand, watchmanArgs, { stdio: "inherit", shell: true });
                 }
+                catch (e) {
+                    console.warn('ERROR', e);
+                }
+            }
+            else {
+                console.log(chalk_1.default.redBright.bold('Error: missing configurations. Please check you provided a target path'));
+                console.log(chalk_1.default.whiteBright("configurations: " + target));
             }
             return [2 /*return*/];
         });
     });
 }
+exports.runCli = runCli;

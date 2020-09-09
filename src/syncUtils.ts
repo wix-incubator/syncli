@@ -1,0 +1,47 @@
+import path from 'path';
+import fs from 'fs';
+import chalk from 'chalk';
+import {DEFAULT_IGNORE_SOURCES} from './constants';
+
+export function parseOptions(rawOptions: { [key: string]: string }): SyncOptions {
+  const targetPath = rawOptions.target;
+  const sources = rawOptions?.sources?.split('/');
+  const ignoredSources = rawOptions?.ignoredSources?.split('/');
+  return {targetPath, sources, ignoredSources};
+}
+
+export function shouldIncludeItemByDefault(item: string): boolean {
+  const isIgnoreByDefault = DEFAULT_IGNORE_SOURCES.includes(item);
+  const isHidden = item.startsWith('.');
+  return !isHidden && !isIgnoreByDefault;
+}
+
+export function getItemsToSync(sources?: Sources, ignoredSources?: Sources) {
+  let itemsToSync: Sources = sources || [];
+  if (!itemsToSync || itemsToSync.length === 0) {
+    itemsToSync = fs.readdirSync(path.resolve(process.cwd()));
+    itemsToSync = itemsToSync?.filter((item) => {
+      if (ignoredSources) {
+        return !ignoredSources.includes(item);
+      }
+      return shouldIncludeItemByDefault(item);
+    });
+  }
+
+  return itemsToSync;
+}
+
+export function logSummary(erroredItems: string[], itemsToSync: string[]) {
+  if (erroredItems.length > 0) {
+    const syncedItems = itemsToSync.filter((item) => !erroredItems.includes(item));
+    erroredItems.forEach((item) => {
+      console.log(chalk.bgRedBright.whiteBright('Error'), item);
+    });
+    syncedItems.forEach((item) => {
+      console.log(chalk.bgGreenBright.blackBright('Synced'), item);
+    });
+  } else {
+    console.log(chalk.bgGreenBright.blackBright('\n', ' ✔ All synced '));
+  }
+  console.log('\n', '---------------', '\n');
+}

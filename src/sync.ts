@@ -1,73 +1,25 @@
-const path = require('path');
+import {getItemsToSync, logSummary, parseOptions} from './syncUtils';
+
 const {spawn} = require('child_process');
 const {Command} = require('commander');
-const fs = require('fs');
 const chalk = require('chalk');
-
-/*** Declarations ***/
-
-type Sources = string[];
-
-interface Options {
-  targetPath?: string;
-  sources?: Sources;
-  ignoreSources?: Sources;
-}
-
-/*** Run Program ***/
 
 const program = new Command();
 program
   .option('-s, --sources <sources>', 'sources to sync')
-  .option('-i, --ignore-sources <ignoreSources>')
+  .option('-i, --ignored-sources <ignoredSources>')
   .option('-t, --target <target>', 'target path')
   .parse(process.argv);
 
 runSync(parseOptions(program.opts()));
 
-/*** Functions ***/
-
-function parseOptions(rawOptions: { [key: string]: string }): Options {
-  const targetPath = rawOptions.target;
-  const sources = rawOptions?.sources?.split('/');
-  const ignoreSources = rawOptions?.ignoreSources?.split('/');
-  return {targetPath, sources, ignoreSources};
-}
-
-function getItemsToSync(sources?: Sources, ignoreSources?: Sources) {
-  let itemsToSync: Sources = sources || [];
-  if (!itemsToSync || itemsToSync.length === 0) {
-    itemsToSync = fs.readdirSync(path.resolve(process.cwd()));
-    itemsToSync = itemsToSync?.filter((item) => {
-      return !ignoreSources!.includes(item);
-    });
-  }
-
-  return itemsToSync;
-}
-
-function logSummary(erroredItems: string[], itemsToSync: string[]) {
-  if (erroredItems.length > 0) {
-    const syncedItems = itemsToSync.filter((item) => !erroredItems.includes(item));
-    erroredItems.forEach((item) => {
-      console.log(chalk.bgRedBright.whiteBright('Error'), item);
-    });
-    syncedItems.forEach((item) => {
-      console.log(chalk.bgGreenBright.blackBright('Synced'), item);
-    });
-  } else {
-    console.log(chalk.bgGreenBright.blackBright('\n', ' ✔ All synced '));
-  }
-  console.log('\n', '---------------', '\n');
-}
-
-function runSync(options: Options) {
-  const itemsToSync = getItemsToSync(options.sources, options.ignoreSources);
+function runSync(options: SyncOptions) {
+  const itemsToSync = getItemsToSync(options.sources, options.ignoredSources);
   const syncTarget = program.target;
 
   let finishedActions = 0;
   let erroredItems: Sources = [];
-  if (itemsToSync && syncTarget) {
+  if (itemsToSync && itemsToSync.length > 0 && syncTarget) {
     for (let item of itemsToSync) {
       const ls = spawn('rsync', ['-rtvi', item, syncTarget]);
 
@@ -89,6 +41,10 @@ function runSync(options: Options) {
       });
     }
   } else {
-    throw Error('missing arguments');
+    console.log(chalk.redBright.bold('Error: Missing arguments'));
+    console.log(chalk.redBright('Please check your configurations. Target and sources should not be empty.'));
+    console.log(chalk.white(`target: ${syncTarget}`));
+    console.log(chalk.white(`sources: ${itemsToSync}`));
+    console.log('\n');
   }
 }

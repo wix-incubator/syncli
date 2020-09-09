@@ -40,10 +40,7 @@
     "esm": "^3.2.25"
   },
   "jest": {
-    "testRegex": "src/.*\\.(test).ts$",
-    "testPathIgnorePatterns": [
-      "./templates/*"
-    ]
+    "testRegex": "src/.*\\.(test).ts$"
   },
   "author": "Ido Amram",
   "license": "ISC"

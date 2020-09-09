@@ -1,57 +1,46 @@
 import * as path from 'path';
-
-interface Target {
-  path: string;
-  fileTypes?: string[];
-  sources?: string[];
-  ignoreSources: string[];
-}
-
-interface Configuration {
-  targets: Target[];
-}
-
-interface ProgramOptions {
-  configuration?: string;
-  target?: string;
-  fileTypes?: string;
-  sources: string;
-  ignoreSources: string;
-}
-
-const DEFAULT_IGNORE_SOURCES = ['node_modules'];
+import chalk from 'chalk';
+import {DEFAULT_FILE_TYPES} from "./constants";
 
 function getConfiguration(programOptions: ProgramOptions): Configuration | undefined {
   let configs: Configuration | undefined;
-  if (programOptions.configuration) {
-    configs = require(programOptions.configuration);
-  } else if (programOptions.target) {
+
+  if (programOptions.target) {
     let fileTypes: string[] | undefined;
     if (programOptions.fileTypes) {
       fileTypes = programOptions.fileTypes.split('/');
     }
     const sources = programOptions.sources?.split('/');
-    const ignoreSources = programOptions.ignoreSources?.split('/');
+    const ignoredSources = programOptions.ignoredSources?.split('/');
     configs = {
-      targets: [{
+      target: {
         path: programOptions.target,
         fileTypes,
         sources,
-        ignoreSources
-      }]
+        ignoredSources: ignoredSources
+      }
     }
   }
-
-  configs?.targets?.forEach((target) => {
-    if (!target.ignoreSources) {
-      target.ignoreSources = DEFAULT_IGNORE_SOURCES;
-    }
-  });
 
   return configs;
 }
 
+function printConfigurations(target: Target) {
+  console.log(chalk.blueBright(chalk.bold('Target path:'), target.path));
+  console.log(chalk.blueBright(chalk.bold('Sources:'), target.sources || 'Default (All)'));
+  console.log(chalk.blueBright(chalk.bold('Ignored sources:'), target.ignoredSources || 'Default (node_modules, hidden files/folders)'));
+  console.log(chalk.blueBright(chalk.bold('File types:'), target.fileTypes || `Default (${DEFAULT_FILE_TYPES})`));
+}
+
+function getSyncScriptCommand(target: Target) {
+  const scriptPath = path.resolve(__dirname, './sync.js');
+  const sources = (target.sources && `--sources ${target.sources}`) ?? '';
+  const ignoredSources = (target.ignoredSources && `--ignored-sources ${target.ignoredSources}`) ?? '';
+  return `"node ${scriptPath} ${sources} ${ignoredSources} --target ${target.path}"`;
+}
+
 export async function runCli(args: string[]): Promise<void> {
+  const {spawn} = require('child_process');
   const {Command} = require('commander');
   const program = new Command();
   program
@@ -59,30 +48,28 @@ export async function runCli(args: string[]): Promise<void> {
     .option('-t, --target <target>', 'target')
     .option('-f, --file-types <fileTypes>', 'file types')
     .option('-s, --sources <sources>', 'sources')
-    .option('-i, --ignore-sources <ignoreSources>', 'sources to ignore')
+    .option('-i, --ignored-sources <ignoredSources>', 'sources to ignore')
     .parse(args);
 
-  let configs = getConfiguration(program.opts());
-
-  if (configs?.targets) {
-    for (let target of configs.targets) {
-      console.warn('TARGET', target);
-      let fileTypes: string[] = [];
-      (target.fileTypes || ['js', 'jsx', 'ts', 'tsx', 'json'])
-        .forEach((fileType: string) => fileTypes.push(`'**/*.${fileType}'`))
-      console.warn('Running', ['watchman-make', '-p', ...fileTypes,
-        '--run', '"node', path.resolve(__dirname, '../'),
-        (target.sources && `--sources ${target.sources}`) ?? '', '--target', target.path, '"'].join(' '));
-      console.warn('Running in', process.cwd());
-      try {
-        const {spawn} = require('child_process');
-        spawn('watchman-make',
-          ['-p', ...fileTypes, '--run',
-            `"node ${path.resolve(__dirname, './sync.js')} ${(target.sources && `--sources ${target.sources}`) ?? ''} ${(target.ignoreSources && `--ignore-sources ${target.ignoreSources}`) ?? ''} --target ${target.path}"`],
-          {stdio: "inherit", shell: true});
-      } catch (e) {
-        console.warn('ERROR', e);
-      }
+  const target = getConfiguration(program.opts())?.target;
+  if (target) {
+    printConfigurations(target);
+    let fileTypes: string[] = [];
+    (target.fileTypes || DEFAULT_FILE_TYPES)
+      .forEach((fileType: string) => fileTypes.push(`'**/*.${fileType}'`))
+    try {
+      const watchmanCommand = 'watchman-make';
+      const watchmanArgs = ['-p', ...fileTypes, '--run',
+        getSyncScriptCommand(target)];
+      console.log(chalk.green.bold('Running'), watchmanCommand, watchmanArgs.join(' '));
+      spawn(watchmanCommand,
+        watchmanArgs,
+        {stdio: "inherit", shell: true});
+    } catch (e) {
+      console.warn('ERROR', e);
     }
+  } else {
+    console.log(chalk.redBright.bold('Error: missing configurations. Please check you provided a target path'));
+    console.log(chalk.whiteBright(`configurations: ${target}`));
   }
 }
