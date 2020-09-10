@@ -12,6 +12,13 @@
     "release": "mltci release",
     "customPublish": "mltci release"
   },
+  "publishConfig": {
+    "registry": "http://npm.dev.wixpress.com/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wix-private/syncly.git"
+  },
   "files": [
     "bin/",
     "dist/"
