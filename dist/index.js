@@ -69,6 +69,7 @@ exports.runCli = void 0;
 var path = __importStar(require("path"));
 var chalk_1 = __importDefault(require("chalk"));
 var constants_1 = require("./constants");
+var fs_1 = __importDefault(require("fs"));
 function validateTarget(target) {
     var errorMessage;
     if (!target) {
@@ -76,14 +77,54 @@ function validateTarget(target) {
     }
     else if (!target.path) {
         errorMessage = 'Missing target path';
-    } /* else if (target.path.includes('..') || target.path.includes('./')) {
-      errorMessage = 'Relative path is not supported';
-    }*/
+    }
     if (errorMessage) {
         console.log(chalk_1.default.redBright.bold(chalk_1.default.underline('Error'), '\n', errorMessage));
         console.log(chalk_1.default.whiteBright("configurations: " + target));
     }
     return !errorMessage;
+}
+function searchModuleAbsolutePath(moduleName) {
+    var moduleAbsolutePath;
+    if (moduleName) {
+        var parentDirPath = path.resolve(process.cwd(), '../');
+        for (var parentDirsAmount = 0; parentDirsAmount < 2; parentDirsAmount++) {
+            parentDirPath = path.resolve(parentDirPath, '../');
+            console.log('SEARCH DIR PATH', parentDirPath);
+            var parentDirItems = fs_1.default.readdirSync(parentDirPath);
+            if (parentDirItems) {
+                for (var _i = 0, parentDirItems_1 = parentDirItems; _i < parentDirItems_1.length; _i++) {
+                    var item = parentDirItems_1[_i];
+                    if (item === moduleName) {
+                        moduleAbsolutePath = path.resolve(parentDirPath, item);
+                        break;
+                    }
+                }
+            }
+            if (moduleAbsolutePath) {
+                break;
+            }
+        }
+    }
+    console.log('MODULE PATH', moduleAbsolutePath);
+    return moduleAbsolutePath;
+}
+function parseTargetPath(rawPath) {
+    var resolvedPath = '';
+    if (rawPath) {
+        if (rawPath.includes('/') || rawPath.includes('.')) {
+            resolvedPath = path.resolve(rawPath);
+        }
+        else {
+            var modulePath = searchModuleAbsolutePath(rawPath);
+            if (modulePath) {
+                var originModuleName = path.basename(process.cwd());
+                resolvedPath = path.resolve(modulePath, 'node_modules', originModuleName);
+                console.log('RESOLVED PATH', resolvedPath, modulePath, originModuleName, process.cwd());
+            }
+        }
+    }
+    return resolvedPath;
 }
 function getConfiguration(programOptions) {
     var _a, _b;
@@ -96,7 +137,7 @@ function getConfiguration(programOptions) {
     var ignoredSources = (_b = programOptions.ignoredSources) === null || _b === void 0 ? void 0 : _b.split('/');
     configs = {
         target: {
-            path: programOptions.target,
+            path: parseTargetPath(programOptions.target),
             fileTypes: fileTypes,
             sources: sources,
             ignoredSources: ignoredSources
@@ -105,14 +146,14 @@ function getConfiguration(programOptions) {
     return configs;
 }
 function printConfigurations(target) {
-    console.log(chalk_1.default.blueBright(chalk_1.default.bold('Target path:'), path.resolve(target.path)));
+    console.log(chalk_1.default.blueBright(chalk_1.default.bold('Target path:'), target.path));
     console.log(chalk_1.default.blueBright(chalk_1.default.bold('Sources:'), target.sources || 'Default (All)'));
     console.log(chalk_1.default.blueBright(chalk_1.default.bold('Ignored sources:'), target.ignoredSources || 'Default (node_modules, hidden files/folders)'));
     console.log(chalk_1.default.blueBright(chalk_1.default.bold('File types:'), target.fileTypes || "Default (" + constants_1.DEFAULT_FILE_TYPES + ")"));
 }
 function getSyncScriptCommand(target) {
     var _a, _b;
-    var targetPath = path.resolve(target.path);
+    var targetPath = target.path;
     var scriptPath = path.resolve(__dirname, './sync.js');
     var sources = (_a = (target.sources && "--sources " + target.sources)) !== null && _a !== void 0 ? _a : '';
     var ignoredSources = (_b = (target.ignoredSources && "--ignored-sources " + target.ignoredSources)) !== null && _b !== void 0 ? _b : '';
@@ -127,7 +168,6 @@ function runCli(args) {
             Command = require('commander').Command;
             program = new Command();
             program
-                .option('-c, --configuration <configuration>', 'json/js configuration file')
                 .option('-t, --target <target>', 'target')
                 .option('-f, --file-types <fileTypes>', 'file types')
                 .option('-s, --sources <sources>', 'sources')
