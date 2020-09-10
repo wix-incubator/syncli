@@ -23,8 +23,6 @@ function searchModuleAbsolutePath(moduleName: string): string | undefined {
   if (moduleName) {
     let parentDirPath = path.resolve(process.cwd(), '../');
     for (let parentDirsAmount = 0; parentDirsAmount < 2; parentDirsAmount++) {
-      parentDirPath = path.resolve(parentDirPath, '../');
-      console.log('SEARCH DIR PATH', parentDirPath);
       const parentDirItems = fs.readdirSync(parentDirPath);
       if (parentDirItems) {
         for (const item of parentDirItems) {
@@ -38,6 +36,8 @@ function searchModuleAbsolutePath(moduleName: string): string | undefined {
       if (moduleAbsolutePath) {
         break;
       }
+
+      parentDirPath = path.resolve(parentDirPath, '../');
     }
   }
 

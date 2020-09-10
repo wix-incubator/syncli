@@ -89,8 +89,6 @@ function searchModuleAbsolutePath(moduleName) {
     if (moduleName) {
         var parentDirPath = path.resolve(process.cwd(), '../');
         for (var parentDirsAmount = 0; parentDirsAmount < 2; parentDirsAmount++) {
-            parentDirPath = path.resolve(parentDirPath, '../');
-            console.log('SEARCH DIR PATH', parentDirPath);
             var parentDirItems = fs_1.default.readdirSync(parentDirPath);
             if (parentDirItems) {
                 for (var _i = 0, parentDirItems_1 = parentDirItems; _i < parentDirItems_1.length; _i++) {
@@ -104,6 +102,7 @@ function searchModuleAbsolutePath(moduleName) {
             if (moduleAbsolutePath) {
                 break;
             }
+            parentDirPath = path.resolve(parentDirPath, '../');
         }
     }
     console.log('MODULE PATH', moduleAbsolutePath);
