@@ -1,13 +1,13 @@
 {
   "name": "syncly",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "A Tool for syncing multiple directories",
   "main": "src/index.ts",
   "scripts": {
-    "start": "npm run compile && node ./bin/syncly",
+    "start": "node ./dist/index.js",
     "test": "jest",
     "unit-test": "jest --watchAll",
-    "build": "npm run compile",
+    "build": ":",
     "compile": "tsc",
     "release": "mltci release",
     "customPublish": "mltci release"
