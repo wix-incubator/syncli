@@ -16,7 +16,7 @@ done
 #done
 #invites_items=(src)
 #for item in ${invites_items[@]}; do
-#  rsync -rtvi --delete ${item} ../syncly-test/sync-to/node_modules
+#  rsync -rtvi --delete ${item} ../syncli-test/sync-to/node_modules
 #done
 #
 #echo -e '\n\nsynced to\n../../wix-one-app-creation/node_modules/wix-one-app-invites\n\n'

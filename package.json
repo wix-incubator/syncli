@@ -1,5 +1,5 @@
 {
-  "name": "syncly",
+  "name": "syncli",
   "version": "1.0.0",
   "description": "A Tool for syncing multiple directories",
   "main": "src/index.ts",
@@ -17,15 +17,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/wix-private/syncly.git"
+    "url": "https://github.com/wix-private/syncli.git"
   },
   "files": [
     "bin/",
     "dist/"
   ],
   "bin": {
-    "idoamram/syncly": "bin/syncly",
-    "syncly": "bin/syncly"
+    "idoamram/syncli": "bin/syncli",
+    "syncli": "bin/syncli"
   },
   "devDependencies": {
     "@babel/core": "^7.9.6",
