@@ -32,7 +32,8 @@
     "@types/listr": "^0.14.2",
     "babel-jest": "^25.5.1",
     "jest": "^25.5.1",
-    "typescript": "^3.8.3"
+    "typescript": "^3.8.3",
+    "wix-mobile-lifecycle-tools": "^2.0.0"
   },
   "dependencies": {
     "chalk": "^4.0.0",
