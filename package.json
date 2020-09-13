@@ -50,6 +50,11 @@
   "jest": {
     "testRegex": "src/.*\\.(test).ts$"
   },
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run test"
+    }
+  },
   "author": "Ido Amram",
   "license": "ISC"
 }
