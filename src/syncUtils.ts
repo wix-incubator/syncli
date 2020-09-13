@@ -11,9 +11,16 @@ export function parseOptions(rawOptions: { [key: string]: string }): SyncOptions
 }
 
 export function shouldIncludeItemByDefault(item: string): boolean {
-  const isIgnoreByDefault = DEFAULT_IGNORE_SOURCES.includes(item);
-  const isHidden = item.startsWith('.');
-  return !isHidden && !isIgnoreByDefault;
+  const isIgnoredByDefault = DEFAULT_IGNORE_SOURCES.includes(item);
+  const dotIndex = item.indexOf('.');
+  const isHidden = dotIndex === 0;
+  const lowerCaseItem = item.toLowerCase();
+  const isFile = dotIndex > 0;
+  const isAllowedFile = isFile && (['package.json', 'index.js', 'index.ts', 'app.js', 'app.ts', 'app.jsx', 'app.tsx'].includes(lowerCaseItem));
+  const isTestRelated = lowerCaseItem.includes('test') || lowerCaseItem.includes('e2e');
+  const isDemoRelated = lowerCaseItem.includes('demo');
+
+  return !isIgnoredByDefault && !isHidden && !isTestRelated && !isDemoRelated && (isAllowedFile || !isFile);
 }
 
 export function getItemsToSync(sources?: Sources, ignoredSources?: Sources) {

@@ -24,7 +24,7 @@ function runSync(options: SyncOptions) {
       const ls = spawn('rsync', ['-rtvi', item, syncTarget]);
 
       ls.stdout.on('data', (data: any) => {
-        console.log(chalk.white('syncing -> ' + chalk.green.bold(item)));
+        console.log(chalk.white('syncing... ' + chalk.green.bold(item)));
       });
 
       ls.stderr.on('data', (data: any) => {

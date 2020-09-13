@@ -19,7 +19,6 @@ interface Configuration {
 
 interface ProgramOptions {
   configuration?: string;
-  target?: string;
   fileTypes?: string;
   sources: string;
   ignoredSources: string;

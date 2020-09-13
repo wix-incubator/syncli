@@ -70,6 +70,10 @@ var path = __importStar(require("path"));
 var chalk_1 = __importDefault(require("chalk"));
 var constants_1 = require("./constants");
 var fs_1 = __importDefault(require("fs"));
+var Actions;
+(function (Actions) {
+    Actions["TO"] = "to";
+})(Actions || (Actions = {}));
 function validateTarget(target) {
     var errorMessage;
     if (!target) {
@@ -105,7 +109,6 @@ function searchModuleAbsolutePath(moduleName) {
             parentDirPath = path.resolve(parentDirPath, '../');
         }
     }
-    console.log('MODULE PATH', moduleAbsolutePath);
     return moduleAbsolutePath;
 }
 function parseTargetPath(rawPath) {
@@ -119,13 +122,12 @@ function parseTargetPath(rawPath) {
             if (modulePath) {
                 var originModuleName = path.basename(process.cwd());
                 resolvedPath = path.resolve(modulePath, 'node_modules', originModuleName);
-                console.log('RESOLVED PATH', resolvedPath, modulePath, originModuleName, process.cwd());
             }
         }
     }
     return resolvedPath;
 }
-function getConfiguration(programOptions) {
+function getConfiguration(targetPath, programOptions) {
     var _a, _b;
     var configs;
     var fileTypes;
@@ -136,7 +138,7 @@ function getConfiguration(programOptions) {
     var ignoredSources = (_b = programOptions.ignoredSources) === null || _b === void 0 ? void 0 : _b.split('/');
     configs = {
         target: {
-            path: parseTargetPath(programOptions.target),
+            path: parseTargetPath(targetPath),
             fileTypes: fileTypes,
             sources: sources,
             ignoredSources: ignoredSources
@@ -147,7 +149,9 @@ function getConfiguration(programOptions) {
 function printConfigurations(target) {
     console.log(chalk_1.default.blueBright(chalk_1.default.bold('Target path:'), target.path));
     console.log(chalk_1.default.blueBright(chalk_1.default.bold('Sources:'), target.sources || 'Default (All)'));
-    console.log(chalk_1.default.blueBright(chalk_1.default.bold('Ignored sources:'), target.ignoredSources || 'Default (node_modules, hidden files/folders)'));
+    if (!target.sources) {
+        console.log(chalk_1.default.blueBright(chalk_1.default.bold('Ignored sources:'), target.ignoredSources || "Default -\n" + constants_1.DEFAULT_IGNORED_SOURCES_DESCRIPTION));
+    }
     console.log(chalk_1.default.blueBright(chalk_1.default.bold('File types:'), target.fileTypes || "Default (" + constants_1.DEFAULT_FILE_TYPES + ")"));
 }
 function getSyncScriptCommand(target) {
@@ -159,35 +163,35 @@ function getSyncScriptCommand(target) {
     return "\"node " + scriptPath + " " + sources + " " + ignoredSources + " --target " + targetPath + "\"";
 }
 function runCli(args) {
-    var _a;
     return __awaiter(this, void 0, void 0, function () {
-        var spawn, Command, program, target, fileTypes_1, watchmanCommand, watchmanArgs;
-        return __generator(this, function (_b) {
+        var spawn, Command, program;
+        return __generator(this, function (_a) {
             spawn = require('child_process').spawn;
             Command = require('commander').Command;
             program = new Command();
             program
-                .option('-t, --target <target>', 'target')
-                .option('-f, --file-types <fileTypes>', 'file types')
-                .option('-s, --sources <sources>', 'sources')
-                .option('-i, --ignored-sources <ignoredSources>', 'sources to ignore')
+                .arguments('<command> [targetPath]')
+                .usage('to <target-path> [options]')
+                .option('-f, --file-types <fileTypes>', "File types that will be synced.\nSplit by '/'.\nExample: ts/jsx/xml")
+                .option('-s, --sources <sources>', "Files/folders from the root folder that will be synced.\nSplit by '/'.\nExample: src/strings/someFile.js\nThe default is all.")
+                .option('-i, --ignored-sources <ignoredSources>', "Files/folders from the root folder that will NOT be synced.\nSplit by '/'.\nExample: node_modules/someIgnoredFile.json\nThe default is:\n" + constants_1.DEFAULT_IGNORED_SOURCES_DESCRIPTION)
+                .action(function (command, targetPath) {
+                var _a;
+                if (command === Actions.TO) {
+                    var target = (_a = getConfiguration(targetPath, program.opts())) === null || _a === void 0 ? void 0 : _a.target;
+                    if (validateTarget(target)) {
+                        printConfigurations(target);
+                        var fileTypes_1 = [];
+                        (target.fileTypes || constants_1.DEFAULT_FILE_TYPES)
+                            .forEach(function (fileType) { return fileTypes_1.push("'**/*." + fileType + "'"); });
+                        var watchmanCommand = 'watchman-make';
+                        var watchmanArgs = __spreadArrays(['-p'], fileTypes_1, ['--run', getSyncScriptCommand(target)]);
+                        console.log(chalk_1.default.green.bold('Running'), watchmanCommand, watchmanArgs.join(' '));
+                        spawn(watchmanCommand, watchmanArgs, { stdio: "inherit", shell: true });
+                    }
+                }
+            })
                 .parse(args);
-            target = (_a = getConfiguration(program.opts())) === null || _a === void 0 ? void 0 : _a.target;
-            if (validateTarget(target)) {
-                printConfigurations(target);
-                fileTypes_1 = [];
-                (target.fileTypes || constants_1.DEFAULT_FILE_TYPES)
-                    .forEach(function (fileType) { return fileTypes_1.push("'**/*." + fileType + "'"); });
-                try {
-                    watchmanCommand = 'watchman-make';
-                    watchmanArgs = __spreadArrays(['-p'], fileTypes_1, ['--run', getSyncScriptCommand(target)]);
-                    console.log(chalk_1.default.green.bold('Running'), watchmanCommand, watchmanArgs.join(' '));
-                    spawn(watchmanCommand, watchmanArgs, { stdio: "inherit", shell: true });
-                }
-                catch (e) {
-                    console.warn('ERROR', e);
-                }
-            }
             return [2 /*return*/];
         });
     });

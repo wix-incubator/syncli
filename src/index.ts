@@ -1,7 +1,11 @@
 import * as path from 'path';
 import chalk from 'chalk';
-import {DEFAULT_FILE_TYPES} from "./constants";
+import {DEFAULT_FILE_TYPES, DEFAULT_IGNORED_SOURCES_DESCRIPTION} from "./constants";
 import fs from 'fs';
+
+enum Actions {
+  TO = 'to'
+}
 
 function validateTarget(target: Target | undefined): boolean {
   let errorMessage;
@@ -41,7 +45,6 @@ function searchModuleAbsolutePath(moduleName: string): string | undefined {
     }
   }
 
-  console.log('MODULE PATH', moduleAbsolutePath);
   return moduleAbsolutePath;
 }
 
@@ -56,7 +59,6 @@ function parseTargetPath(rawPath: string | undefined): string {
       if (modulePath) {
         const originModuleName = path.basename(process.cwd());
         resolvedPath = path.resolve(modulePath, 'node_modules', originModuleName);
-        console.log('RESOLVED PATH', resolvedPath, modulePath, originModuleName, process.cwd());
       }
     }
   }
@@ -64,7 +66,7 @@ function parseTargetPath(rawPath: string | undefined): string {
   return resolvedPath;
 }
 
-function getConfiguration(programOptions: ProgramOptions): Configuration | undefined {
+function getConfiguration(targetPath: string, programOptions: ProgramOptions): Configuration | undefined {
   let configs: Configuration | undefined;
 
   let fileTypes: string[] | undefined;
@@ -75,7 +77,7 @@ function getConfiguration(programOptions: ProgramOptions): Configuration | undef
   const ignoredSources = programOptions.ignoredSources?.split('/');
   configs = {
     target: {
-      path: parseTargetPath(programOptions.target),
+      path: parseTargetPath(targetPath),
       fileTypes,
       sources,
       ignoredSources: ignoredSources
@@ -88,7 +90,9 @@ function getConfiguration(programOptions: ProgramOptions): Configuration | undef
 function printConfigurations(target: Target) {
   console.log(chalk.blueBright(chalk.bold('Target path:'), target.path));
   console.log(chalk.blueBright(chalk.bold('Sources:'), target.sources || 'Default (All)'));
-  console.log(chalk.blueBright(chalk.bold('Ignored sources:'), target.ignoredSources || 'Default (node_modules, hidden files/folders)'));
+  if (!target.sources) {
+    console.log(chalk.blueBright(chalk.bold('Ignored sources:'), target.ignoredSources || `Default -\n${DEFAULT_IGNORED_SOURCES_DESCRIPTION}`));
+  }
   console.log(chalk.blueBright(chalk.bold('File types:'), target.fileTypes || `Default (${DEFAULT_FILE_TYPES})`));
 }
 
@@ -105,28 +109,28 @@ export async function runCli(args: string[]): Promise<void> {
   const {Command} = require('commander');
   const program = new Command();
   program
-    .option('-t, --target <target>', 'target')
-    .option('-f, --file-types <fileTypes>', 'file types')
-    .option('-s, --sources <sources>', 'sources')
-    .option('-i, --ignored-sources <ignoredSources>', 'sources to ignore')
+    .arguments('<command> [targetPath]')
+    .usage('to <target-path> [options]')
+    .option('-f, --file-types <fileTypes>', `File types that will be synced.\nSplit by '/'.\nExample: ts/jsx/xml`)
+    .option('-s, --sources <sources>', `Files/folders from the root folder that will be synced.\nSplit by '/'.\nExample: src/strings/someFile.js\nThe default is all.`)
+    .option('-i, --ignored-sources <ignoredSources>', `Files/folders from the root folder that will NOT be synced.\nSplit by '/'.\nExample: node_modules/someIgnoredFile.json\nThe default is:\n${DEFAULT_IGNORED_SOURCES_DESCRIPTION}`)
+    .action((command: string, targetPath: string) => {
+      if (command === Actions.TO) {
+        const target = getConfiguration(targetPath, program.opts())?.target;
+        if (validateTarget(target)) {
+          printConfigurations(target!);
+          let fileTypes: string[] = [];
+          (target!.fileTypes || DEFAULT_FILE_TYPES)
+            .forEach((fileType: string) => fileTypes.push(`'**/*.${fileType}'`))
+          const watchmanCommand = 'watchman-make';
+          const watchmanArgs = ['-p', ...fileTypes, '--run',
+            getSyncScriptCommand(target!)];
+          console.log(chalk.green.bold('Running'), watchmanCommand, watchmanArgs.join(' '));
+          spawn(watchmanCommand,
+            watchmanArgs,
+            {stdio: "inherit", shell: true});
+        }
+      }
+    })
     .parse(args);
-
-  const target = getConfiguration(program.opts())?.target;
-  if (validateTarget(target)) {
-    printConfigurations(target!);
-    let fileTypes: string[] = [];
-    (target!.fileTypes || DEFAULT_FILE_TYPES)
-      .forEach((fileType: string) => fileTypes.push(`'**/*.${fileType}'`))
-    try {
-      const watchmanCommand = 'watchman-make';
-      const watchmanArgs = ['-p', ...fileTypes, '--run',
-        getSyncScriptCommand(target!)];
-      console.log(chalk.green.bold('Running'), watchmanCommand, watchmanArgs.join(' '));
-      spawn(watchmanCommand,
-        watchmanArgs,
-        {stdio: "inherit", shell: true});
-    } catch (e) {
-      console.warn('ERROR', e);
-    }
-  }
 }

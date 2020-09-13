@@ -17,9 +17,15 @@ function parseOptions(rawOptions) {
 }
 exports.parseOptions = parseOptions;
 function shouldIncludeItemByDefault(item) {
-    var isIgnoreByDefault = constants_1.DEFAULT_IGNORE_SOURCES.includes(item);
-    var isHidden = item.startsWith('.');
-    return !isHidden && !isIgnoreByDefault;
+    var isIgnoredByDefault = constants_1.DEFAULT_IGNORE_SOURCES.includes(item);
+    var dotIndex = item.indexOf('.');
+    var isHidden = dotIndex === 0;
+    var lowerCaseItem = item.toLowerCase();
+    var isFile = dotIndex > 0;
+    var isAllowedFile = isFile && (['package.json', 'index.js', 'index.ts', 'app.js', 'app.ts', 'app.jsx', 'app.tsx'].includes(lowerCaseItem));
+    var isTestRelated = lowerCaseItem.includes('test') || lowerCaseItem.includes('e2e');
+    var isDemoRelated = lowerCaseItem.includes('demo');
+    return !isIgnoredByDefault && !isHidden && !isTestRelated && !isDemoRelated && (isAllowedFile || !isFile);
 }
 exports.shouldIncludeItemByDefault = shouldIncludeItemByDefault;
 function getItemsToSync(sources, ignoredSources) {

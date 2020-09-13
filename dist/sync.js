@@ -20,7 +20,7 @@ function runSync(options) {
         var _loop_1 = function (item) {
             var ls = spawn('rsync', ['-rtvi', item, syncTarget]);
             ls.stdout.on('data', function (data) {
-                console.log(chalk.white('syncing -> ' + chalk.green.bold(item)));
+                console.log(chalk.white('syncing... ' + chalk.green.bold(item)));
             });
             ls.stderr.on('data', function (data) {
                 erroredItems.push(item);
