@@ -8,7 +8,7 @@ exports.LIST_ARGUMENT_SPLITTER = ',';
 /*** Mocks ***/
 exports.MOCKED_RAW_OPTIONS = {
     target: 'some_path',
-    ignoredSources: exports.DEFAULT_IGNORE_SOURCES.join('/')
+    ignoredSources: exports.DEFAULT_IGNORE_SOURCES.join(exports.LIST_ARGUMENT_SPLITTER)
 };
 exports.MOCKED_PARSED_OPTIONS = {
     targetPath: 'some_path',

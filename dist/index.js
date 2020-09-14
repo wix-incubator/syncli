@@ -89,6 +89,7 @@ function validateTarget(target) {
     return !errorMessage;
 }
 function searchModuleAbsolutePath(moduleName) {
+    var _a;
     var moduleAbsolutePath;
     if (moduleName) {
         var parentDirPath = path.resolve(process.cwd(), '../');
@@ -99,6 +100,10 @@ function searchModuleAbsolutePath(moduleName) {
                     var item = parentDirItems_1[_i];
                     if (item === moduleName) {
                         moduleAbsolutePath = path.resolve(parentDirPath, item);
+                        var isMonoRepo = (_a = fs_1.default.readdirSync(moduleAbsolutePath)) === null || _a === void 0 ? void 0 : _a.includes(moduleName);
+                        if (isMonoRepo) {
+                            moduleAbsolutePath = path.resolve(moduleAbsolutePath, moduleName);
+                        }
                         break;
                     }
                 }
@@ -172,7 +177,6 @@ function runCli(args) {
             program
                 .arguments('<command> [targetPath]')
                 .usage('to <target-path> [options]')
-                .usage('to <target-path> [blabla]')
                 .option('-f, --file-types <fileTypes>', "File types that will be synced.\nSplit by ','.\nExample: ts,jsx,xml")
                 .option('-s, --sources <sources>', "Files/folders from the root folder that will be synced.\nSplit by ','.\nExample: src,strings,someFile.js\nThe default is all.")
                 .option('-i, --ignored-sources <ignoredSources>', "Files/folders from the root folder that will NOT be synced.\nSplit by ','.\nExample: node_modules,someIgnoredFile.json\nThe default is:\n" + constants_1.DEFAULT_IGNORED_SOURCES_DESCRIPTION)

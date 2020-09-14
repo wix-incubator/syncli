@@ -32,6 +32,10 @@ function searchModuleAbsolutePath(moduleName: string): string | undefined {
         for (const item of parentDirItems) {
           if (item === moduleName) {
             moduleAbsolutePath = path.resolve(parentDirPath, item);
+            const isMonoRepo = fs.readdirSync(moduleAbsolutePath)?.includes(moduleName);
+            if (isMonoRepo) {
+              moduleAbsolutePath = path.resolve(moduleAbsolutePath, moduleName);
+            }
             break;
           }
         }
