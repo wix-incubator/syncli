@@ -132,10 +132,10 @@ function getConfiguration(targetPath, programOptions) {
     var configs;
     var fileTypes;
     if (programOptions.fileTypes) {
-        fileTypes = programOptions.fileTypes.split('/');
+        fileTypes = programOptions.fileTypes.split(constants_1.LIST_ARGUMENT_SPLITTER);
     }
-    var sources = (_a = programOptions.sources) === null || _a === void 0 ? void 0 : _a.split('/');
-    var ignoredSources = (_b = programOptions.ignoredSources) === null || _b === void 0 ? void 0 : _b.split('/');
+    var sources = (_a = programOptions.sources) === null || _a === void 0 ? void 0 : _a.split(constants_1.LIST_ARGUMENT_SPLITTER);
+    var ignoredSources = (_b = programOptions.ignoredSources) === null || _b === void 0 ? void 0 : _b.split(constants_1.LIST_ARGUMENT_SPLITTER);
     configs = {
         target: {
             path: parseTargetPath(targetPath),
@@ -172,9 +172,10 @@ function runCli(args) {
             program
                 .arguments('<command> [targetPath]')
                 .usage('to <target-path> [options]')
-                .option('-f, --file-types <fileTypes>', "File types that will be synced.\nSplit by '/'.\nExample: ts/jsx/xml")
-                .option('-s, --sources <sources>', "Files/folders from the root folder that will be synced.\nSplit by '/'.\nExample: src/strings/someFile.js\nThe default is all.")
-                .option('-i, --ignored-sources <ignoredSources>', "Files/folders from the root folder that will NOT be synced.\nSplit by '/'.\nExample: node_modules/someIgnoredFile.json\nThe default is:\n" + constants_1.DEFAULT_IGNORED_SOURCES_DESCRIPTION)
+                .usage('to <target-path> [blabla]')
+                .option('-f, --file-types <fileTypes>', "File types that will be synced.\nSplit by ','.\nExample: ts,jsx,xml")
+                .option('-s, --sources <sources>', "Files/folders from the root folder that will be synced.\nSplit by ','.\nExample: src,strings,someFile.js\nThe default is all.")
+                .option('-i, --ignored-sources <ignoredSources>', "Files/folders from the root folder that will NOT be synced.\nSplit by ','.\nExample: node_modules,someIgnoredFile.json\nThe default is:\n" + constants_1.DEFAULT_IGNORED_SOURCES_DESCRIPTION)
                 .action(function (command, targetPath) {
                 var _a;
                 if (command === Actions.TO) {

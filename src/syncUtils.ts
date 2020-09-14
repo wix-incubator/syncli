@@ -1,12 +1,12 @@
 import path from 'path';
 import fs from 'fs';
 import chalk from 'chalk';
-import {DEFAULT_IGNORE_SOURCES} from './constants';
+import {DEFAULT_IGNORE_SOURCES, LIST_ARGUMENT_SPLITTER} from './constants';
 
 export function parseOptions(rawOptions: { [key: string]: string }): SyncOptions {
   const targetPath = rawOptions.target;
-  const sources = rawOptions?.sources?.split('/');
-  const ignoredSources = rawOptions?.ignoredSources?.split('/');
+  const sources = rawOptions?.sources?.split(LIST_ARGUMENT_SPLITTER);
+  const ignoredSources = rawOptions?.ignoredSources?.split(LIST_ARGUMENT_SPLITTER);
   return {targetPath, sources, ignoredSources};
 }
 

@@ -7,11 +7,13 @@ export const DEFAULT_IGNORED_SOURCES_DESCRIPTION =
 4. folders includes 'demo'
 5. ${DEFAULT_IGNORE_SOURCES.join(', ')})`;
 
+export const LIST_ARGUMENT_SPLITTER = ',';
+
 /*** Mocks ***/
 
 export const MOCKED_RAW_OPTIONS = {
   target: 'some_path',
-  ignoredSources: DEFAULT_IGNORE_SOURCES.join('/')
+  ignoredSources: DEFAULT_IGNORE_SOURCES.join(LIST_ARGUMENT_SPLITTER)
 }
 
 export const MOCKED_PARSED_OPTIONS = {

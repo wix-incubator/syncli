@@ -1,6 +1,6 @@
 import * as path from 'path';
 import chalk from 'chalk';
-import {DEFAULT_FILE_TYPES, DEFAULT_IGNORED_SOURCES_DESCRIPTION} from "./constants";
+import {DEFAULT_FILE_TYPES, DEFAULT_IGNORED_SOURCES_DESCRIPTION, LIST_ARGUMENT_SPLITTER} from "./constants";
 import fs from 'fs';
 
 enum Actions {
@@ -71,10 +71,10 @@ function getConfiguration(targetPath: string, programOptions: ProgramOptions): C
 
   let fileTypes: string[] | undefined;
   if (programOptions.fileTypes) {
-    fileTypes = programOptions.fileTypes.split('/');
+    fileTypes = programOptions.fileTypes.split(LIST_ARGUMENT_SPLITTER);
   }
-  const sources = programOptions.sources?.split('/');
-  const ignoredSources = programOptions.ignoredSources?.split('/');
+  const sources = programOptions.sources?.split(LIST_ARGUMENT_SPLITTER);
+  const ignoredSources = programOptions.ignoredSources?.split(LIST_ARGUMENT_SPLITTER);
   configs = {
     target: {
       path: parseTargetPath(targetPath),
@@ -111,9 +111,9 @@ export async function runCli(args: string[]): Promise<void> {
   program
     .arguments('<command> [targetPath]')
     .usage('to <target-path> [options]')
-    .option('-f, --file-types <fileTypes>', `File types that will be synced.\nSplit by '/'.\nExample: ts/jsx/xml`)
-    .option('-s, --sources <sources>', `Files/folders from the root folder that will be synced.\nSplit by '/'.\nExample: src/strings/someFile.js\nThe default is all.`)
-    .option('-i, --ignored-sources <ignoredSources>', `Files/folders from the root folder that will NOT be synced.\nSplit by '/'.\nExample: node_modules/someIgnoredFile.json\nThe default is:\n${DEFAULT_IGNORED_SOURCES_DESCRIPTION}`)
+    .option('-f, --file-types <fileTypes>', `File types that will be synced.\nSplit by ','.\nExample: ts,jsx,xml`)
+    .option('-s, --sources <sources>', `Files/folders from the root folder that will be synced.\nSplit by ','.\nExample: src,strings,someFile.js\nThe default is all.`)
+    .option('-i, --ignored-sources <ignoredSources>', `Files/folders from the root folder that will NOT be synced.\nSplit by ','.\nExample: node_modules,someIgnoredFile.json\nThe default is:\n${DEFAULT_IGNORED_SOURCES_DESCRIPTION}`)
     .action((command: string, targetPath: string) => {
       if (command === Actions.TO) {
         const target = getConfiguration(targetPath, program.opts())?.target;

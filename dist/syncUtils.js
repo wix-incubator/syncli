@@ -11,8 +11,8 @@ var constants_1 = require("./constants");
 function parseOptions(rawOptions) {
     var _a, _b;
     var targetPath = rawOptions.target;
-    var sources = (_a = rawOptions === null || rawOptions === void 0 ? void 0 : rawOptions.sources) === null || _a === void 0 ? void 0 : _a.split('/');
-    var ignoredSources = (_b = rawOptions === null || rawOptions === void 0 ? void 0 : rawOptions.ignoredSources) === null || _b === void 0 ? void 0 : _b.split('/');
+    var sources = (_a = rawOptions === null || rawOptions === void 0 ? void 0 : rawOptions.sources) === null || _a === void 0 ? void 0 : _a.split(constants_1.LIST_ARGUMENT_SPLITTER);
+    var ignoredSources = (_b = rawOptions === null || rawOptions === void 0 ? void 0 : rawOptions.ignoredSources) === null || _b === void 0 ? void 0 : _b.split(constants_1.LIST_ARGUMENT_SPLITTER);
     return { targetPath: targetPath, sources: sources, ignoredSources: ignoredSources };
 }
 exports.parseOptions = parseOptions;
