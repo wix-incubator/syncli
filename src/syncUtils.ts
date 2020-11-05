@@ -1,41 +1,41 @@
 import path from 'path';
 import fs from 'fs';
 import chalk from 'chalk';
-import {DEFAULT_IGNORE_SOURCES, LIST_ARGUMENT_SPLITTER} from './constants';
+import {LIST_ARGUMENT_SPLITTER} from './constants';
 
-export function parseOptions(rawOptions: { [key: string]: string }): SyncOptions {
-  const targetPath = rawOptions.target;
-  const sources = rawOptions?.sources?.split(LIST_ARGUMENT_SPLITTER);
-  const ignoredSources = rawOptions?.ignoredSources?.split(LIST_ARGUMENT_SPLITTER);
-  return {targetPath, sources, ignoredSources};
-}
+function prepareSources(sources: Sources): Sources {
+  sources.forEach((source, index) => {
+    if (source.startsWith('/')) {
+      source = source.substring(1);
+    }
+    if (source.endsWith('/')) {
+      source = source.substring(0, source.length - 1);
+    }
+    sources[index] = source;
+  });
 
-export function shouldIncludeItemByDefault(item: string): boolean {
-  const isIgnoredByDefault = DEFAULT_IGNORE_SOURCES.includes(item);
-  const dotIndex = item.indexOf('.');
-  const isHidden = dotIndex === 0;
-  const lowerCaseItem = item.toLowerCase();
-  const isFile = dotIndex > 0;
-  const isAllowedFile = isFile && (['package.json', 'index.js', 'index.ts', 'app.js', 'app.ts', 'app.jsx', 'app.tsx'].includes(lowerCaseItem));
-  const isTestRelated = lowerCaseItem.includes('test') || lowerCaseItem.includes('e2e');
-  const isDemoRelated = lowerCaseItem.includes('demo');
-
-  return !isIgnoredByDefault && !isHidden && !isTestRelated && !isDemoRelated && (isAllowedFile || !isFile);
+  return sources;
 }
 
 export function getItemsToSync(sources?: Sources, ignoredSources?: Sources) {
+  sources = sources && prepareSources(sources);
+  ignoredSources = ignoredSources && prepareSources(ignoredSources);
   let itemsToSync: Sources = sources || [];
   if (!itemsToSync || itemsToSync.length === 0) {
     itemsToSync = fs.readdirSync(path.resolve(process.cwd()));
     itemsToSync = itemsToSync?.filter((item) => {
-      if (ignoredSources) {
-        return !ignoredSources.includes(item);
-      }
-      return shouldIncludeItemByDefault(item);
+      return ignoredSources && !ignoredSources.includes(item);
     });
   }
 
   return itemsToSync;
+}
+
+export function parseOptions(rawOptions: {[key: string]: string}): SyncOptions {
+  const targetPath = rawOptions.target;
+  const sources = rawOptions?.sources?.split(LIST_ARGUMENT_SPLITTER);
+  const ignoredSources = rawOptions?.ignoredSources?.split(LIST_ARGUMENT_SPLITTER);
+  return {targetPath, sources, ignoredSources};
 }
 
 export function logSummary(erroredItems: string[], itemsToSync: string[]) {

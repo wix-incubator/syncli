@@ -70,6 +70,7 @@ var path = __importStar(require("path"));
 var chalk_1 = __importDefault(require("chalk"));
 var constants_1 = require("./constants");
 var fs_1 = __importDefault(require("fs"));
+var lodash_1 = __importDefault(require("lodash"));
 var Actions;
 (function (Actions) {
     Actions["TO"] = "to";
@@ -132,15 +133,46 @@ function parseTargetPath(rawPath) {
     }
     return resolvedPath;
 }
+function getSources(programOptions) {
+    var _a;
+    var takenFrom;
+    var sources = (_a = programOptions.sources) === null || _a === void 0 ? void 0 : _a.split(constants_1.LIST_ARGUMENT_SPLITTER);
+    if (!sources) {
+        var packageJsonPath = path.resolve(process.cwd(), 'package.json');
+        sources = fs_1.default.existsSync(packageJsonPath) && require(packageJsonPath).files;
+        if (sources) {
+            takenFrom = ['"files" from package.json'];
+        }
+    }
+    return { sources: sources, takenFrom: takenFrom };
+}
+function getIgnoredSources(programOptions) {
+    var _a;
+    var takenFrom;
+    var sources = (_a = programOptions.ignoredSources) === null || _a === void 0 ? void 0 : _a.split(constants_1.LIST_ARGUMENT_SPLITTER);
+    if (!sources) {
+        var parse = require('parse-gitignore');
+        var npmIgnorePath = path.resolve(process.cwd(), '.npmignore');
+        var gitIgnorePath = path.resolve(process.cwd(), '.gitignore');
+        var npmIgnoreItems = fs_1.default.existsSync(npmIgnorePath) && parse(fs_1.default.readFileSync(npmIgnorePath));
+        var gitIgnoreItems = fs_1.default.existsSync(gitIgnorePath) && parse(fs_1.default.readFileSync(gitIgnorePath));
+        if (npmIgnoreItems || gitIgnoreItems) {
+            sources = lodash_1.default.union(npmIgnoreItems, gitIgnoreItems);
+            takenFrom = [];
+            npmIgnoreItems && takenFrom.push('.npmignore');
+            gitIgnoreItems && takenFrom.push('.gitignore');
+        }
+    }
+    return { sources: sources, takenFrom: takenFrom };
+}
 function getConfiguration(targetPath, programOptions) {
-    var _a, _b;
     var configs;
     var fileTypes;
     if (programOptions.fileTypes) {
         fileTypes = programOptions.fileTypes.split(constants_1.LIST_ARGUMENT_SPLITTER);
     }
-    var sources = (_a = programOptions.sources) === null || _a === void 0 ? void 0 : _a.split(constants_1.LIST_ARGUMENT_SPLITTER);
-    var ignoredSources = (_b = programOptions.ignoredSources) === null || _b === void 0 ? void 0 : _b.split(constants_1.LIST_ARGUMENT_SPLITTER);
+    var sources = getSources(programOptions);
+    var ignoredSources = getIgnoredSources(programOptions);
     configs = {
         target: {
             path: parseTargetPath(targetPath),
@@ -152,19 +184,22 @@ function getConfiguration(targetPath, programOptions) {
     return configs;
 }
 function printConfigurations(target) {
+    var _a, _b;
     console.log(chalk_1.default.blueBright(chalk_1.default.bold('Target path:'), target.path));
-    console.log(chalk_1.default.blueBright(chalk_1.default.bold('Sources:'), target.sources || 'Default (All)'));
-    if (!target.sources) {
-        console.log(chalk_1.default.blueBright(chalk_1.default.bold('Ignored sources:'), target.ignoredSources || "Default -\n" + constants_1.DEFAULT_IGNORED_SOURCES_DESCRIPTION));
+    if (target.sources) {
+        console.log(chalk_1.default.blueBright(chalk_1.default.bold('Sources:'), target.sources.takenFrom ? "taken from " + target.sources.takenFrom : (target.sources.sources || 'Default (All)')));
+    }
+    if (!((_a = target.sources) === null || _a === void 0 ? void 0 : _a.sources) && target.ignoredSources) {
+        console.log(chalk_1.default.blueBright(chalk_1.default.bold('Ignored sources:'), target.ignoredSources.takenFrom ? "taken from " + target.ignoredSources.takenFrom : (((_b = target.sources) === null || _b === void 0 ? void 0 : _b.sources) || 'not defined')));
     }
     console.log(chalk_1.default.blueBright(chalk_1.default.bold('File types:'), target.fileTypes || "Default (" + constants_1.DEFAULT_FILE_TYPES + ")"));
 }
 function getSyncScriptCommand(target) {
-    var _a, _b;
+    var _a, _b, _c, _d;
     var targetPath = target.path;
     var scriptPath = path.resolve(__dirname, './sync.js');
-    var sources = (_a = (target.sources && "--sources " + target.sources)) !== null && _a !== void 0 ? _a : '';
-    var ignoredSources = (_b = (target.ignoredSources && "--ignored-sources " + target.ignoredSources)) !== null && _b !== void 0 ? _b : '';
+    var sources = (_b = (((_a = target.sources) === null || _a === void 0 ? void 0 : _a.sources) && "--sources " + target.sources.sources)) !== null && _b !== void 0 ? _b : '';
+    var ignoredSources = (_d = (((_c = target.ignoredSources) === null || _c === void 0 ? void 0 : _c.sources) && "--ignored-sources " + target.ignoredSources.sources)) !== null && _d !== void 0 ? _d : '';
     return "\"node " + scriptPath + " " + sources + " " + ignoredSources + " --target " + targetPath + "\"";
 }
 function runCli(args) {
@@ -177,7 +212,7 @@ function runCli(args) {
             program
                 .arguments('<command> [targetPath]')
                 .usage('to <target-path> [options]')
-                .option('-f, --file-types <fileTypes>', "File types that will be synced.\nSplit by ','.\nExample: ts,jsx,xml")
+                .option('-f, --file-types <fileTypes>', "File types that will be synced.\nSplit by ','.\nExample: ts,jsx,xml\nDefault are " + constants_1.DEFAULT_FILE_TYPES)
                 .option('-s, --sources <sources>', "Files/folders from the root folder that will be synced.\nSplit by ','.\nExample: src,strings,someFile.js\nThe default is all.")
                 .option('-i, --ignored-sources <ignoredSources>', "Files/folders from the root folder that will NOT be synced.\nSplit by ','.\nExample: node_modules,someIgnoredFile.json\nThe default is:\n" + constants_1.DEFAULT_IGNORED_SOURCES_DESCRIPTION)
                 .action(function (command, targetPath) {
@@ -187,11 +222,10 @@ function runCli(args) {
                     if (validateTarget(target)) {
                         printConfigurations(target);
                         var fileTypes_1 = [];
-                        (target.fileTypes || constants_1.DEFAULT_FILE_TYPES)
-                            .forEach(function (fileType) { return fileTypes_1.push("'**/*." + fileType + "'"); });
+                        (target.fileTypes || constants_1.DEFAULT_FILE_TYPES).forEach(function (fileType) { return fileTypes_1.push("'**/*." + fileType + "'"); });
                         var watchmanCommand = 'watchman-make';
                         var watchmanArgs = __spreadArrays(['-p'], fileTypes_1, ['--run', getSyncScriptCommand(target)]);
-                        console.log(chalk_1.default.green.bold('Running'), watchmanCommand, watchmanArgs.join(' '));
+                        console.log(chalk_1.default.green.bold('Running'), '\n', watchmanCommand, '\n', watchmanArgs.join('\n'), '\n------------\n');
                         spawn(watchmanCommand, watchmanArgs, { stdio: "inherit", shell: true });
                     }
                 }

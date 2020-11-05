@@ -2,6 +2,7 @@ import * as path from 'path';
 import chalk from 'chalk';
 import {DEFAULT_FILE_TYPES, DEFAULT_IGNORED_SOURCES_DESCRIPTION, LIST_ARGUMENT_SPLITTER} from "./constants";
 import fs from 'fs';
+import _ from 'lodash';
 
 enum Actions {
   TO = 'to'
@@ -70,6 +71,44 @@ function parseTargetPath(rawPath: string | undefined): string {
   return resolvedPath;
 }
 
+function getSources(programOptions: ProgramOptions): SourcesData {
+  let takenFrom;
+  let sources = programOptions.sources?.split(LIST_ARGUMENT_SPLITTER);
+
+  if (!sources) {
+    const packageJsonPath = path.resolve(process.cwd(), 'package.json');
+    sources = fs.existsSync(packageJsonPath) && require(packageJsonPath).files;
+    if (sources) {
+      takenFrom = ['"files" from package.json']
+    }
+  }
+
+  return {sources, takenFrom};
+}
+
+function getIgnoredSources(programOptions: ProgramOptions): SourcesData {
+  let takenFrom;
+  let sources = programOptions.ignoredSources?.split(LIST_ARGUMENT_SPLITTER);
+
+  if (!sources) {
+    const parse = require('parse-gitignore');
+
+    const npmIgnorePath = path.resolve(process.cwd(), '.npmignore');
+    const gitIgnorePath = path.resolve(process.cwd(), '.gitignore');
+    const npmIgnoreItems = fs.existsSync(npmIgnorePath) && parse(fs.readFileSync(npmIgnorePath));
+    const gitIgnoreItems = fs.existsSync(gitIgnorePath) && parse(fs.readFileSync(gitIgnorePath));
+
+    if (npmIgnoreItems || gitIgnoreItems) {
+      sources = _.union(npmIgnoreItems, gitIgnoreItems);
+      takenFrom = [];
+      npmIgnoreItems && takenFrom.push('.npmignore');
+      gitIgnoreItems && takenFrom.push('.gitignore');
+    }
+  }
+
+  return {sources, takenFrom};
+}
+
 function getConfiguration(targetPath: string, programOptions: ProgramOptions): Configuration | undefined {
   let configs: Configuration | undefined;
 
@@ -77,8 +116,10 @@ function getConfiguration(targetPath: string, programOptions: ProgramOptions): C
   if (programOptions.fileTypes) {
     fileTypes = programOptions.fileTypes.split(LIST_ARGUMENT_SPLITTER);
   }
-  const sources = programOptions.sources?.split(LIST_ARGUMENT_SPLITTER);
-  const ignoredSources = programOptions.ignoredSources?.split(LIST_ARGUMENT_SPLITTER);
+
+  const sources = getSources(programOptions);
+  const ignoredSources = getIgnoredSources(programOptions);
+
   configs = {
     target: {
       path: parseTargetPath(targetPath),
@@ -93,9 +134,11 @@ function getConfiguration(targetPath: string, programOptions: ProgramOptions): C
 
 function printConfigurations(target: Target) {
   console.log(chalk.blueBright(chalk.bold('Target path:'), target.path));
-  console.log(chalk.blueBright(chalk.bold('Sources:'), target.sources || 'Default (All)'));
-  if (!target.sources) {
-    console.log(chalk.blueBright(chalk.bold('Ignored sources:'), target.ignoredSources || `Default -\n${DEFAULT_IGNORED_SOURCES_DESCRIPTION}`));
+  if (target.sources) {
+    console.log(chalk.blueBright(chalk.bold('Sources:'), target.sources.takenFrom ? `taken from ${target.sources.takenFrom}` : (target.sources.sources || 'Default (All)')));
+  }
+  if (!target.sources?.sources && target.ignoredSources) {
+    console.log(chalk.blueBright(chalk.bold('Ignored sources:'), target.ignoredSources.takenFrom ? `taken from ${target.ignoredSources.takenFrom}` : (target.sources?.sources || 'not defined')));
   }
   console.log(chalk.blueBright(chalk.bold('File types:'), target.fileTypes || `Default (${DEFAULT_FILE_TYPES})`));
 }
@@ -103,8 +146,8 @@ function printConfigurations(target: Target) {
 function getSyncScriptCommand(target: Target) {
   const targetPath = target.path;
   const scriptPath = path.resolve(__dirname, './sync.js');
-  const sources = (target.sources && `--sources ${target.sources}`) ?? '';
-  const ignoredSources = (target.ignoredSources && `--ignored-sources ${target.ignoredSources}`) ?? '';
+  const sources = (target.sources?.sources && `--sources ${target.sources.sources}`) ?? '';
+  const ignoredSources = (target.ignoredSources?.sources && `--ignored-sources ${target.ignoredSources.sources}`) ?? '';
   return `"node ${scriptPath} ${sources} ${ignoredSources} --target ${targetPath}"`;
 }
 
@@ -115,7 +158,7 @@ export async function runCli(args: string[]): Promise<void> {
   program
     .arguments('<command> [targetPath]')
     .usage('to <target-path> [options]')
-    .option('-f, --file-types <fileTypes>', `File types that will be synced.\nSplit by ','.\nExample: ts,jsx,xml`)
+    .option('-f, --file-types <fileTypes>', `File types that will be synced.\nSplit by ','.\nExample: ts,jsx,xml\nDefault are ${DEFAULT_FILE_TYPES}`)
     .option('-s, --sources <sources>', `Files/folders from the root folder that will be synced.\nSplit by ','.\nExample: src,strings,someFile.js\nThe default is all.`)
     .option('-i, --ignored-sources <ignoredSources>', `Files/folders from the root folder that will NOT be synced.\nSplit by ','.\nExample: node_modules,someIgnoredFile.json\nThe default is:\n${DEFAULT_IGNORED_SOURCES_DESCRIPTION}`)
     .action((command: string, targetPath: string) => {
@@ -124,12 +167,11 @@ export async function runCli(args: string[]): Promise<void> {
         if (validateTarget(target)) {
           printConfigurations(target!);
           let fileTypes: string[] = [];
-          (target!.fileTypes || DEFAULT_FILE_TYPES)
-            .forEach((fileType: string) => fileTypes.push(`'**/*.${fileType}'`))
+          (target!.fileTypes || DEFAULT_FILE_TYPES).forEach((fileType: string) => fileTypes.push(`'**/*.${fileType}'`));
           const watchmanCommand = 'watchman-make';
           const watchmanArgs = ['-p', ...fileTypes, '--run',
             getSyncScriptCommand(target!)];
-          console.log(chalk.green.bold('Running'), watchmanCommand, watchmanArgs.join(' '));
+          console.log(chalk.green.bold('Running'), '\n', watchmanCommand, '\n', watchmanArgs.join('\n'), '\n------------\n');
           spawn(watchmanCommand,
             watchmanArgs,
             {stdio: "inherit", shell: true});

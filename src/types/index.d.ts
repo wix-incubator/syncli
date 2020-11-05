@@ -9,8 +9,8 @@ interface SyncOptions {
 interface Target {
   path: string;
   fileTypes?: string[];
-  sources?: string[];
-  ignoredSources: string[];
+  sources?: SourcesData;
+  ignoredSources?: SourcesData;
 }
 
 interface Configuration {
@@ -22,4 +22,9 @@ interface ProgramOptions {
   fileTypes?: string;
   sources: string;
   ignoredSources: string;
+}
+
+interface SourcesData {
+  sources: string[] | undefined;
+  takenFrom: string[] | undefined;
 }
