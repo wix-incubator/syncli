@@ -91,6 +91,10 @@ function getIgnoredSources(programOptions: ProgramOptions): SourcesData {
   let sources = programOptions.ignoredSources?.split(LIST_ARGUMENT_SPLITTER);
 
   if (!sources) {
+    sources = ['.git'];
+  }
+
+  if (!sources) {
     const parse = require('parse-gitignore');
 
     const npmIgnorePath = path.resolve(process.cwd(), '.npmignore');
