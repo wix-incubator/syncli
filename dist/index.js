@@ -151,17 +151,18 @@ function getIgnoredSources(programOptions) {
     var takenFrom;
     var sources = (_a = programOptions.ignoredSources) === null || _a === void 0 ? void 0 : _a.split(constants_1.LIST_ARGUMENT_SPLITTER);
     if (!sources) {
+        sources = ['.git'];
+    }
+    if (!sources) {
         var parse = require('parse-gitignore');
         var npmIgnorePath = path.resolve(process.cwd(), '.npmignore');
         var gitIgnorePath = path.resolve(process.cwd(), '.gitignore');
         var npmIgnoreItems = fs_1.default.existsSync(npmIgnorePath) && parse(fs_1.default.readFileSync(npmIgnorePath));
         var gitIgnoreItems = fs_1.default.existsSync(gitIgnorePath) && parse(fs_1.default.readFileSync(gitIgnorePath));
-        if (npmIgnoreItems || gitIgnoreItems) {
-            sources = lodash_1.default.union(npmIgnoreItems, gitIgnoreItems);
-            takenFrom = [];
-            npmIgnoreItems && takenFrom.push('.npmignore');
-            gitIgnoreItems && takenFrom.push('.gitignore');
-        }
+        sources = lodash_1.default.union(npmIgnoreItems, gitIgnoreItems, sources);
+        takenFrom = [];
+        npmIgnoreItems && takenFrom.push('.npmignore');
+        gitIgnoreItems && takenFrom.push('.gitignore');
     }
     return { sources: sources, takenFrom: takenFrom };
 }

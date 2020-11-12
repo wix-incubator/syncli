@@ -102,12 +102,10 @@ function getIgnoredSources(programOptions: ProgramOptions): SourcesData {
     const npmIgnoreItems = fs.existsSync(npmIgnorePath) && parse(fs.readFileSync(npmIgnorePath));
     const gitIgnoreItems = fs.existsSync(gitIgnorePath) && parse(fs.readFileSync(gitIgnorePath));
 
-    if (npmIgnoreItems || gitIgnoreItems) {
-      sources = _.union(npmIgnoreItems, gitIgnoreItems);
-      takenFrom = [];
-      npmIgnoreItems && takenFrom.push('.npmignore');
-      gitIgnoreItems && takenFrom.push('.gitignore');
-    }
+    sources = _.union(npmIgnoreItems, gitIgnoreItems, sources);
+    takenFrom = [];
+    npmIgnoreItems && takenFrom.push('.npmignore');
+    gitIgnoreItems && takenFrom.push('.gitignore');
   }
 
   return {sources, takenFrom};
