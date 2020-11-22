@@ -8,12 +8,29 @@ enum Actions {
   TO = 'to'
 }
 
-function validateTarget(target: Target | undefined): boolean {
+async function validateTarget(target: Target | undefined): Promise<boolean> {
   let errorMessage;
   if (!target) {
     errorMessage = 'Missing configurations';
   } else if (!target.path) {
     errorMessage = 'Missing target path';
+  } else if (!target.path.includes('/node_modules/')) {
+    const inquirer = require('inquirer');
+    const questionName = 'confirm_path_not_in_node_modules';
+    const continueAnswer = 'confirm';
+    const answers = await inquirer.prompt([{
+      type: 'input',
+      name: questionName,
+      message: `${chalk.bold.yellow('!!!  WARNING  !!!')}
+      This target path ${chalk.bold.underline(target.path)} is not under a ${chalk.bold.underline('node_modules')} folder.
+      If the provided path is not in .gitignore, it is not safe and can lead to unrecoverable overwrites/deletions.
+      Please verify your path, or type "${chalk.bold.green(continueAnswer)}" to continue.`
+    }]);
+    const shouldContinue = answers[questionName] === continueAnswer;
+    if (!shouldContinue) {
+      console.log('Sync process finished');
+    }
+    return shouldContinue;
   }
   if (errorMessage) {
     console.log(chalk.redBright.bold(chalk.underline('Error'), '\n', errorMessage));
@@ -153,8 +170,24 @@ function getSyncScriptCommand(target: Target) {
   return `"node ${scriptPath} ${sources} ${ignoredSources} --target ${targetPath}"`;
 }
 
-export async function runCli(args: string[]): Promise<void> {
+async function handleToCommand(targetPath: string, program: any): Promise<void> {
   const {spawn} = require('child_process');
+  const target = getConfiguration(targetPath, program.opts())?.target;
+  if (await validateTarget(target)) {
+    printConfigurations(target!);
+    let fileTypes: string[] = [];
+    (target!.fileTypes || DEFAULT_FILE_TYPES).forEach((fileType: string) => fileTypes.push(`'**/*.${fileType}'`));
+    const watchmanCommand = 'watchman-make';
+    const watchmanArgs = ['-p', ...fileTypes, '--run',
+      getSyncScriptCommand(target!)];
+    console.log(chalk.green.bold('Running'), '\n', watchmanCommand, '\n', watchmanArgs.join('\n'), '\n------------\n');
+    spawn(watchmanCommand,
+      watchmanArgs,
+      {stdio: "inherit", shell: true});
+  }
+}
+
+export async function runCli(args: string[]): Promise<void> {
   const {Command} = require('commander');
   const program = new Command();
   program
@@ -165,19 +198,7 @@ export async function runCli(args: string[]): Promise<void> {
     .option('-i, --ignored-sources <ignoredSources>', `Files/folders from the root folder that will NOT be synced.\nSplit by ','.\nExample: node_modules,someIgnoredFile.json\nThe default is:\n${DEFAULT_IGNORED_SOURCES_DESCRIPTION}`)
     .action((command: string, targetPath: string) => {
       if (command === Actions.TO) {
-        const target = getConfiguration(targetPath, program.opts())?.target;
-        if (validateTarget(target)) {
-          printConfigurations(target!);
-          let fileTypes: string[] = [];
-          (target!.fileTypes || DEFAULT_FILE_TYPES).forEach((fileType: string) => fileTypes.push(`'**/*.${fileType}'`));
-          const watchmanCommand = 'watchman-make';
-          const watchmanArgs = ['-p', ...fileTypes, '--run',
-            getSyncScriptCommand(target!)];
-          console.log(chalk.green.bold('Running'), '\n', watchmanCommand, '\n', watchmanArgs.join('\n'), '\n------------\n');
-          spawn(watchmanCommand,
-            watchmanArgs,
-            {stdio: "inherit", shell: true});
-        }
+        handleToCommand(targetPath, program);
       } else {
         console.log(`${chalk.bold.red(command)} is unknown`);
         printBasicInstructionsForUnknownCommand();

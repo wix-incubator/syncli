@@ -46,6 +46,7 @@
     "chalk": "^4.0.0",
     "commander": "^4.1.0",
     "esm": "^3.2.25",
+    "inquirer": "^7.3.3",
     "lodash": "^4.17.20",
     "parse-gitignore": "1.0.1"
   },

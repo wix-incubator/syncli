@@ -76,18 +76,44 @@ var Actions;
     Actions["TO"] = "to";
 })(Actions || (Actions = {}));
 function validateTarget(target) {
-    var errorMessage;
-    if (!target) {
-        errorMessage = 'Missing configurations';
-    }
-    else if (!target.path) {
-        errorMessage = 'Missing target path';
-    }
-    if (errorMessage) {
-        console.log(chalk_1.default.redBright.bold(chalk_1.default.underline('Error'), '\n', errorMessage));
-        console.log(chalk_1.default.whiteBright("configurations: " + target));
-    }
-    return !errorMessage;
+    return __awaiter(this, void 0, void 0, function () {
+        var errorMessage, inquirer, questionName, continueAnswer, answers, shouldContinue;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    if (!!target) return [3 /*break*/, 1];
+                    errorMessage = 'Missing configurations';
+                    return [3 /*break*/, 4];
+                case 1:
+                    if (!!target.path) return [3 /*break*/, 2];
+                    errorMessage = 'Missing target path';
+                    return [3 /*break*/, 4];
+                case 2:
+                    if (!!target.path.includes('/node_modules/')) return [3 /*break*/, 4];
+                    inquirer = require('inquirer');
+                    questionName = 'confirm_path_not_in_node_modules';
+                    continueAnswer = 'confirm';
+                    return [4 /*yield*/, inquirer.prompt([{
+                                type: 'input',
+                                name: questionName,
+                                message: chalk_1.default.bold.yellow('!!!  WARNING  !!!') + "\n      This target path " + chalk_1.default.bold.underline(target.path) + " is not under a " + chalk_1.default.bold.underline('node_modules') + " folder.\n      If the provided path is not in .gitignore, it is not safe and can lead to unrecoverable overwrites/deletions.\n      Please verify your path, or type \"" + chalk_1.default.bold.green(continueAnswer) + "\" to continue."
+                            }])];
+                case 3:
+                    answers = _a.sent();
+                    shouldContinue = answers[questionName] === continueAnswer;
+                    if (!shouldContinue) {
+                        console.log('Sync process finished');
+                    }
+                    return [2 /*return*/, shouldContinue];
+                case 4:
+                    if (errorMessage) {
+                        console.log(chalk_1.default.redBright.bold(chalk_1.default.underline('Error'), '\n', errorMessage));
+                        console.log(chalk_1.default.whiteBright("configurations: " + target));
+                    }
+                    return [2 /*return*/, !errorMessage];
+            }
+        });
+    });
 }
 function searchModuleAbsolutePath(moduleName) {
     var _a;
@@ -203,11 +229,35 @@ function getSyncScriptCommand(target) {
     var ignoredSources = (_d = (((_c = target.ignoredSources) === null || _c === void 0 ? void 0 : _c.sources) && "--ignored-sources " + target.ignoredSources.sources)) !== null && _d !== void 0 ? _d : '';
     return "\"node " + scriptPath + " " + sources + " " + ignoredSources + " --target " + targetPath + "\"";
 }
+function handleToCommand(targetPath, program) {
+    var _a;
+    return __awaiter(this, void 0, void 0, function () {
+        var spawn, target, fileTypes_1, watchmanCommand, watchmanArgs;
+        return __generator(this, function (_b) {
+            switch (_b.label) {
+                case 0:
+                    spawn = require('child_process').spawn;
+                    target = (_a = getConfiguration(targetPath, program.opts())) === null || _a === void 0 ? void 0 : _a.target;
+                    return [4 /*yield*/, validateTarget(target)];
+                case 1:
+                    if (_b.sent()) {
+                        printConfigurations(target);
+                        fileTypes_1 = [];
+                        (target.fileTypes || constants_1.DEFAULT_FILE_TYPES).forEach(function (fileType) { return fileTypes_1.push("'**/*." + fileType + "'"); });
+                        watchmanCommand = 'watchman-make';
+                        watchmanArgs = __spreadArrays(['-p'], fileTypes_1, ['--run', getSyncScriptCommand(target)]);
+                        console.log(chalk_1.default.green.bold('Running'), '\n', watchmanCommand, '\n', watchmanArgs.join('\n'), '\n------------\n');
+                        spawn(watchmanCommand, watchmanArgs, { stdio: "inherit", shell: true });
+                    }
+                    return [2 /*return*/];
+            }
+        });
+    });
+}
 function runCli(args) {
     return __awaiter(this, void 0, void 0, function () {
-        var spawn, Command, program;
+        var Command, program;
         return __generator(this, function (_a) {
-            spawn = require('child_process').spawn;
             Command = require('commander').Command;
             program = new Command();
             program
@@ -217,18 +267,8 @@ function runCli(args) {
                 .option('-s, --sources <sources>', "Files/folders from the root folder that will be synced.\nSplit by ','.\nExample: src,strings,someFile.js\nThe default is all.")
                 .option('-i, --ignored-sources <ignoredSources>', "Files/folders from the root folder that will NOT be synced.\nSplit by ','.\nExample: node_modules,someIgnoredFile.json\nThe default is:\n" + constants_1.DEFAULT_IGNORED_SOURCES_DESCRIPTION)
                 .action(function (command, targetPath) {
-                var _a;
                 if (command === Actions.TO) {
-                    var target = (_a = getConfiguration(targetPath, program.opts())) === null || _a === void 0 ? void 0 : _a.target;
-                    if (validateTarget(target)) {
-                        printConfigurations(target);
-                        var fileTypes_1 = [];
-                        (target.fileTypes || constants_1.DEFAULT_FILE_TYPES).forEach(function (fileType) { return fileTypes_1.push("'**/*." + fileType + "'"); });
-                        var watchmanCommand = 'watchman-make';
-                        var watchmanArgs = __spreadArrays(['-p'], fileTypes_1, ['--run', getSyncScriptCommand(target)]);
-                        console.log(chalk_1.default.green.bold('Running'), '\n', watchmanCommand, '\n', watchmanArgs.join('\n'), '\n------------\n');
-                        spawn(watchmanCommand, watchmanArgs, { stdio: "inherit", shell: true });
-                    }
+                    handleToCommand(targetPath, program);
                 }
                 else {
                     console.log(chalk_1.default.bold.red(command) + " is unknown");
