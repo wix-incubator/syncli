@@ -230,10 +230,20 @@ function runCli(args) {
                         spawn(watchmanCommand, watchmanArgs, { stdio: "inherit", shell: true });
                     }
                 }
+                else {
+                    console.log(chalk_1.default.bold.red(command) + " is unknown");
+                    printBasicInstructionsForUnknownCommand();
+                }
             })
                 .parse(args);
+            if (!program.actions || program.actions.length === 0) {
+                printBasicInstructionsForUnknownCommand();
+            }
             return [2 /*return*/];
         });
     });
 }
 exports.runCli = runCli;
+function printBasicInstructionsForUnknownCommand() {
+    console.log("Please use " + chalk_1.default.bold.green('to') + " => \"syncli " + chalk_1.default.bold.green('to') + " <absolutePath/relativePath/moduleName> <options>\"");
+}

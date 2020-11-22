@@ -178,7 +178,18 @@ export async function runCli(args: string[]): Promise<void> {
             watchmanArgs,
             {stdio: "inherit", shell: true});
         }
+      } else {
+        console.log(`${chalk.bold.red(command)} is unknown`);
+        printBasicInstructionsForUnknownCommand();
       }
     })
     .parse(args);
+
+  if (!program.actions || program.actions.length === 0) {
+    printBasicInstructionsForUnknownCommand();
+  }
+}
+
+function printBasicInstructionsForUnknownCommand() {
+  console.log(`Please use ${chalk.bold.green('to')} => "syncli ${chalk.bold.green('to')} <absolutePath/relativePath/moduleName> <options>"`);
 }
