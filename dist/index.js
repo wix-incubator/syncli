@@ -175,21 +175,18 @@ function getSources(programOptions) {
 function getIgnoredSources(programOptions) {
     var _a;
     var takenFrom;
-    var sources = (_a = programOptions.ignoredSources) === null || _a === void 0 ? void 0 : _a.split(constants_1.LIST_ARGUMENT_SPLITTER);
-    if (!sources) {
-        sources = ['.git'];
-    }
-    if (!sources) {
-        var parse = require('parse-gitignore');
-        var npmIgnorePath = path.resolve(process.cwd(), '.npmignore');
-        var gitIgnorePath = path.resolve(process.cwd(), '.gitignore');
-        var npmIgnoreItems = fs_1.default.existsSync(npmIgnorePath) && parse(fs_1.default.readFileSync(npmIgnorePath));
-        var gitIgnoreItems = fs_1.default.existsSync(gitIgnorePath) && parse(fs_1.default.readFileSync(gitIgnorePath));
-        sources = lodash_1.default.union(npmIgnoreItems, gitIgnoreItems, sources);
-        takenFrom = [];
-        npmIgnoreItems && takenFrom.push('.npmignore');
-        gitIgnoreItems && takenFrom.push('.gitignore');
-    }
+    var sources = ((_a = programOptions.ignoredSources) === null || _a === void 0 ? void 0 : _a.split(constants_1.LIST_ARGUMENT_SPLITTER)) || [];
+    sources.push('.git');
+    sources.push('.eslintrc');
+    var parse = require('parse-gitignore');
+    var npmIgnorePath = path.resolve(process.cwd(), '.npmignore');
+    var gitIgnorePath = path.resolve(process.cwd(), '.gitignore');
+    var npmIgnoreItems = fs_1.default.existsSync(npmIgnorePath) && parse(fs_1.default.readFileSync(npmIgnorePath));
+    var gitIgnoreItems = fs_1.default.existsSync(gitIgnorePath) && parse(fs_1.default.readFileSync(gitIgnorePath));
+    sources = lodash_1.default.union(npmIgnoreItems, gitIgnoreItems, sources);
+    takenFrom = [];
+    npmIgnoreItems && takenFrom.push('.npmignore');
+    gitIgnoreItems && takenFrom.push('.gitignore');
     return { sources: sources, takenFrom: takenFrom };
 }
 function getConfiguration(targetPath, programOptions) {

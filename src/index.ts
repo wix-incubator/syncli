@@ -105,25 +105,20 @@ function getSources(programOptions: ProgramOptions): SourcesData {
 
 function getIgnoredSources(programOptions: ProgramOptions): SourcesData {
   let takenFrom;
-  let sources = programOptions.ignoredSources?.split(LIST_ARGUMENT_SPLITTER);
+  let sources = programOptions.ignoredSources?.split(LIST_ARGUMENT_SPLITTER) || [];
 
-  if (!sources) {
-    sources = ['.git'];
-  }
+  sources.push('.git');
 
-  if (!sources) {
-    const parse = require('parse-gitignore');
+  const parse = require('parse-gitignore');
+  const npmIgnorePath = path.resolve(process.cwd(), '.npmignore');
+  const gitIgnorePath = path.resolve(process.cwd(), '.gitignore');
+  const npmIgnoreItems = fs.existsSync(npmIgnorePath) && parse(fs.readFileSync(npmIgnorePath));
+  const gitIgnoreItems = fs.existsSync(gitIgnorePath) && parse(fs.readFileSync(gitIgnorePath));
 
-    const npmIgnorePath = path.resolve(process.cwd(), '.npmignore');
-    const gitIgnorePath = path.resolve(process.cwd(), '.gitignore');
-    const npmIgnoreItems = fs.existsSync(npmIgnorePath) && parse(fs.readFileSync(npmIgnorePath));
-    const gitIgnoreItems = fs.existsSync(gitIgnorePath) && parse(fs.readFileSync(gitIgnorePath));
-
-    sources = _.union(npmIgnoreItems, gitIgnoreItems, sources);
-    takenFrom = [];
-    npmIgnoreItems && takenFrom.push('.npmignore');
-    gitIgnoreItems && takenFrom.push('.gitignore');
-  }
+  sources = _.union(npmIgnoreItems, gitIgnoreItems, sources);
+  takenFrom = [];
+  npmIgnoreItems && takenFrom.push('.npmignore');
+  gitIgnoreItems && takenFrom.push('.gitignore');
 
   return {sources, takenFrom};
 }
