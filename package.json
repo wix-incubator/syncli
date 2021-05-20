@@ -39,7 +39,7 @@
     "@types/lodash": "^4.14.164",
     "babel-jest": "^25.5.1",
     "jest": "^25.5.1",
-    "release-it": "^14.0.3",
+    "release-it": "^14.6.2",
     "typescript": "^3.8.3"
   },
   "dependencies": {
@@ -47,7 +47,7 @@
     "commander": "^4.1.0",
     "esm": "^3.2.25",
     "inquirer": "^7.3.3",
-    "lodash": "^4.17.20",
+    "lodash": "^4.17.21",
     "parse-gitignore": "1.0.1"
   },
   "jest": {
