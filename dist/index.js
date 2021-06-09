@@ -144,6 +144,7 @@ function searchModuleAbsolutePath(moduleName) {
     return moduleAbsolutePath;
 }
 function parseTargetPath(rawPath) {
+    var _a, _b;
     var resolvedPath = '';
     if (rawPath) {
         if (rawPath.includes('/') || rawPath.includes('.')) {
@@ -152,8 +153,21 @@ function parseTargetPath(rawPath) {
         else {
             var modulePath = searchModuleAbsolutePath(rawPath);
             if (modulePath) {
+                var moduleWorkspaceName = '';
+                var packageJsonPath = path.resolve(process.cwd(), 'package.json');
+                if (fs_1.default.existsSync(packageJsonPath)) {
+                    var packageJson = require(packageJsonPath);
+                    if (((_a = packageJson.name) === null || _a === void 0 ? void 0 : _a.startsWith('@')) && ((_b = packageJson.name) === null || _b === void 0 ? void 0 : _b.includes('/'))) {
+                        moduleWorkspaceName = packageJson.name.split('/')[0];
+                    }
+                }
                 var originModuleName = path.basename(process.cwd());
-                resolvedPath = path.resolve(modulePath, 'node_modules', originModuleName);
+                if (moduleWorkspaceName) {
+                    resolvedPath = path.resolve(modulePath, 'node_modules', moduleWorkspaceName, originModuleName);
+                }
+                else {
+                    resolvedPath = path.resolve(modulePath, 'node_modules', originModuleName);
+                }
             }
         }
     }
@@ -177,7 +191,6 @@ function getIgnoredSources(programOptions) {
     var takenFrom;
     var sources = ((_a = programOptions.ignoredSources) === null || _a === void 0 ? void 0 : _a.split(constants_1.LIST_ARGUMENT_SPLITTER)) || [];
     sources.push('.git');
-    sources.push('.eslintrc');
     var parse = require('parse-gitignore');
     var npmIgnorePath = path.resolve(process.cwd(), '.npmignore');
     var gitIgnorePath = path.resolve(process.cwd(), '.gitignore');

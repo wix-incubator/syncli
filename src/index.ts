@@ -79,8 +79,20 @@ function parseTargetPath(rawPath: string | undefined): string {
     } else {
       const modulePath = searchModuleAbsolutePath(rawPath);
       if (modulePath) {
+        let moduleWorkspaceName = '';
+        const packageJsonPath = path.resolve(process.cwd(), 'package.json');
+        if (fs.existsSync(packageJsonPath)) {
+          const packageJson = require(packageJsonPath);
+          if (packageJson.name?.startsWith('@') && packageJson.name?.includes('/')) {
+            moduleWorkspaceName = packageJson.name.split('/')[0];
+          }
+        }
         const originModuleName = path.basename(process.cwd());
-        resolvedPath = path.resolve(modulePath, 'node_modules', originModuleName);
+        if (moduleWorkspaceName) {
+          resolvedPath = path.resolve(modulePath, 'node_modules', moduleWorkspaceName, originModuleName);
+        } else {
+          resolvedPath = path.resolve(modulePath, 'node_modules', originModuleName);
+        }
       }
     }
   }
