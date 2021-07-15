@@ -71,13 +71,14 @@ var chalk_1 = __importDefault(require("chalk"));
 var constants_1 = require("./constants");
 var fs_1 = __importDefault(require("fs"));
 var lodash_1 = __importDefault(require("lodash"));
+var inquirer = require('inquirer');
 var Actions;
 (function (Actions) {
     Actions["TO"] = "to";
 })(Actions || (Actions = {}));
 function validateTarget(target) {
     return __awaiter(this, void 0, void 0, function () {
-        var errorMessage, inquirer, questionName, continueAnswer, answers, shouldContinue;
+        var errorMessage, questionName, continueAnswer, answers, shouldContinue, confirmAnswer, questionName, answers, shouldContinue;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -90,7 +91,6 @@ function validateTarget(target) {
                     return [3 /*break*/, 4];
                 case 2:
                     if (!!target.path.includes('/node_modules/')) return [3 /*break*/, 4];
-                    inquirer = require('inquirer');
                     questionName = 'confirm_path_not_in_node_modules';
                     continueAnswer = 'confirm';
                     return [4 /*yield*/, inquirer.prompt([{
@@ -106,11 +106,28 @@ function validateTarget(target) {
                     }
                     return [2 /*return*/, shouldContinue];
                 case 4:
-                    if (errorMessage) {
-                        console.log(chalk_1.default.redBright.bold(chalk_1.default.underline('Error'), '\n', errorMessage));
-                        console.log(chalk_1.default.whiteBright("configurations: " + target));
+                    if (!errorMessage) return [3 /*break*/, 5];
+                    console.log(chalk_1.default.redBright.bold(chalk_1.default.underline('Error'), '\n', errorMessage));
+                    console.log("\n\nConfigurations:\n" + JSON.stringify(target, null, 1) + "\n\n");
+                    return [2 /*return*/, false];
+                case 5:
+                    if (!target) return [3 /*break*/, 7];
+                    confirmAnswer = 'Confirm';
+                    questionName = 'confirm_path_general';
+                    return [4 /*yield*/, inquirer.prompt([{
+                                type: 'list',
+                                name: questionName,
+                                choices: [confirmAnswer, 'Abort'],
+                                message: chalk_1.default.bold.yellow('Please confirm the target path:') + "\n      " + target.path,
+                            }])];
+                case 6:
+                    answers = _a.sent();
+                    shouldContinue = answers[questionName] === confirmAnswer;
+                    if (!shouldContinue) {
+                        console.log('Sync process finished');
                     }
-                    return [2 /*return*/, !errorMessage];
+                    return [2 /*return*/, shouldContinue];
+                case 7: return [2 /*return*/, !errorMessage];
             }
         });
     });
@@ -265,9 +282,10 @@ function handleToCommand(targetPath, program) {
     });
 }
 function runCli(args) {
+    var _a;
     return __awaiter(this, void 0, void 0, function () {
         var Command, program;
-        return __generator(this, function (_a) {
+        return __generator(this, function (_b) {
             Command = require('commander').Command;
             program = new Command();
             program
@@ -286,7 +304,7 @@ function runCli(args) {
                 }
             })
                 .parse(args);
-            if (!program.actions || program.actions.length === 0) {
+            if (!((_a = program.args) === null || _a === void 0 ? void 0 : _a.length) || program.args[0] !== Actions.TO) {
                 printBasicInstructionsForUnknownCommand();
             }
             return [2 /*return*/];

@@ -4,6 +4,8 @@ import {DEFAULT_FILE_TYPES, DEFAULT_IGNORED_SOURCES_DESCRIPTION, LIST_ARGUMENT_S
 import fs from 'fs';
 import _ from 'lodash';
 
+const inquirer = require('inquirer');
+
 enum Actions {
   TO = 'to'
 }
@@ -15,7 +17,6 @@ async function validateTarget(target: Target | undefined): Promise<boolean> {
   } else if (!target.path) {
     errorMessage = 'Missing target path';
   } else if (!target.path.includes('/node_modules/')) {
-    const inquirer = require('inquirer');
     const questionName = 'confirm_path_not_in_node_modules';
     const continueAnswer = 'confirm';
     const answers = await inquirer.prompt([{
@@ -34,7 +35,23 @@ async function validateTarget(target: Target | undefined): Promise<boolean> {
   }
   if (errorMessage) {
     console.log(chalk.redBright.bold(chalk.underline('Error'), '\n', errorMessage));
-    console.log(chalk.whiteBright(`configurations: ${target}`));
+    console.log(`\n\nConfigurations:\n${JSON.stringify(target, null, 1)}\n\n`);
+    return false;
+  } else if (target) {
+    const confirmAnswer = 'Confirm';
+    const questionName = 'confirm_path_general';
+    const answers = await inquirer.prompt([{
+      type: 'list',
+      name: questionName,
+      choices: [confirmAnswer, 'Abort'],
+      message: `${chalk.bold.yellow('Please confirm the target path:')}
+      ${target.path}`,
+    }]);
+    const shouldContinue = answers[questionName] === confirmAnswer;
+    if (!shouldContinue) {
+      console.log('Sync process finished');
+    }
+    return shouldContinue;
   }
   return !errorMessage;
 }
@@ -213,7 +230,7 @@ export async function runCli(args: string[]): Promise<void> {
     })
     .parse(args);
 
-  if (!program.actions || program.actions.length === 0) {
+  if (!program.args?.length || program.args[0] !== Actions.TO) {
     printBasicInstructionsForUnknownCommand();
   }
 }
