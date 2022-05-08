@@ -1,6 +1,6 @@
 {
   "name": "syncli",
-  "version": "1.2.12",
+  "version": "1.2.13",
   "description": "A Tool for syncing multiple directories",
   "main": "src/index.ts",
   "scripts": {
