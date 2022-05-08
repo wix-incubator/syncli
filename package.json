@@ -1,6 +1,6 @@
 {
   "name": "syncli",
-  "version": "1.2.10",
+  "version": "1.2.12",
   "description": "A Tool for syncing multiple directories",
   "main": "src/index.ts",
   "scripts": {
@@ -38,8 +38,8 @@
     "@types/listr": "^0.14.2",
     "@types/lodash": "^4.14.164",
     "babel-jest": "^25.5.1",
-    "jest": "^25.5.1",
-    "release-it": "^14.6.2",
+    "jest": "^28.1.0",
+    "release-it": "^15.0.0",
     "typescript": "^3.8.3"
   },
   "dependencies": {
